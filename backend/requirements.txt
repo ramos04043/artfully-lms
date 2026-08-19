@@ -33,8 +33,5 @@ redis==5.0.2
 # Validation
 email-validator==2.1.1
 
-# CORS
-python-cors==1.0.0
-
 # Logging
 python-json-logger==2.0.7
