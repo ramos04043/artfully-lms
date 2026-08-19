@@ -1,0 +1,64 @@
+services:
+  # Backend API Service
+  - type: web
+    name: artfully-lms-api
+    runtime: python
+    region: oregon
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        fromDatabase:
+          name: artfully-lms-db
+          property: connectionString
+      - key: ZENDBX_URL
+        sync: false
+      - key: ZENDBX_API_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: AUTOMATION_SECRET_KEY
+        generateValue: true
+    healthCheckPath: /health
+
+  # Frontend Static Site
+  - type: web
+    name: artfully-lms-frontend
+    env: static
+    region: oregon
+    buildCommand: "cd frontend && npm install && npm run build"
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://artfully-lms-api.onrender.com
+      - key: VITE_ZENDBX_URL
+        sync: false
+      - key: VITE_ZENDBX_API_KEY
+        sync: false
+
+# Optional: PostgreSQL Database (if not using external DB)
+# databases:
+#   - name: artfully-lms-db
+#     databaseName: artfully_lms
+#     user: artfully_admin
+#     region: oregon
