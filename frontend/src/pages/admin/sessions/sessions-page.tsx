@@ -16,7 +16,7 @@ interface Session {
 }
 
 export default function SessionsPage() {
-  const [sessions, setSession] = useState<Session[]>([])
+  const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [filterDay, setFilterDay] = useState<string>('all')
 

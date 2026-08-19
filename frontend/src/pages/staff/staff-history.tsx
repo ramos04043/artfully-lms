@@ -103,7 +103,7 @@ export default function HistoryPage() {
       })
 
       setHistory(Array.from(groupedMap.values()))
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading history:', err)
     } finally {
       setLoading(false)

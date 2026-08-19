@@ -29,7 +29,7 @@ export default function SettingsPage() {
         .in('setting_key', ['studio_name', 'studio_email', 'studio_phone', 'studio_address', 'studio_website', 'admin_name'])
 
       if (data) {
-        const settingsMap = new Map(data.map(s => [s.setting_key, s.setting_value]))
+        const settingsMap = new Map(data.map((s: any) => [s.setting_key, s.setting_value]))
         setSettings({
           studioName: settingsMap.get('studio_name') || 'Artfully Studio',
           email: settingsMap.get('studio_email') || '',
@@ -65,7 +65,7 @@ export default function SettingsPage() {
         .select('setting_key')
         .in('setting_key', settingsToSave.map(s => s.setting_key))
 
-      const existingKeys = new Set(existing?.map(s => s.setting_key) || [])
+      const existingKeys = new Set(existing?.map((s: any) => s.setting_key) || [])
 
       // Update existing and insert new
       for (const setting of settingsToSave) {
