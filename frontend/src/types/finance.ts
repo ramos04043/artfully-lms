@@ -2,6 +2,7 @@ export type AccountType = 'CAPEX' | 'OPEX'
 export type AccountMode = 'BANK' | 'CASH'
 export type TransactionType = 'INFLOW' | 'OUTFLOW' | 'ADJUSTMENT' | 'REVERSAL'
 export type ExpenseStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+export type PaymentMode = 'CASH' | 'BANK' | 'UPI' | 'CARD' | 'CHEQUE'
 
 export interface FinancialAccount {
   id: string

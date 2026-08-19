@@ -1,7 +1,7 @@
 import { ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
-import { Home, CheckSquare, History, User, LogOut } from 'lucide-react'
+import { Home, History, User, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface StaffLayoutProps {
@@ -17,7 +17,7 @@ const navigation = [
 export default function StaffLayout({ children }: StaffLayoutProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, staff, clearAuth } = useAuthStore()
+  const { clearAuth } = useAuthStore()
 
   const handleLogout = () => {
     clearAuth()
