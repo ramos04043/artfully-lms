@@ -1,0 +1,689 @@
+﻿import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { db } from '@/lib/zendbx'
+import { 
+  ArrowLeft, Mail, Phone, MapPin, Calendar, 
+  School, Edit, Pause, Play, X, Save, AlertCircle, CheckCircle,
+  Users, Clock, FileText
+} from 'lucide-react'
+import { format } from 'date-fns'
+
+interface Student {
+  id: string
+  student_id: string
+  student_first_name: string
+  student_last_name: string
+  student_date_of_birth: string | null
+  student_gender: string | null
+  student_email: string | null
+  student_phone: string | null
+  student_address: string | null
+  student_school_name: string | null
+  student_grade: string | null
+  parent_first_name: string
+  parent_last_name: string | null
+  parent_phone: string
+  parent_email: string | null
+  parent_relationship: string | null
+  batch_ids: string[]
+  status: string
+  created_at: string
+  paused_at: string | null
+  paused_reason: string | null
+}
+
+interface Batch {
+  id: string
+  name: string
+  day_of_week: string
+  start_time: string
+  end_time: string
+}
+
+interface AttendanceSummary {
+  total_classes: number
+  present: number
+  absent: number
+  percentage: number
+}
+
+export default function StudentDetailsPage() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [student, setStudent] = useState<Student | null>(null)
+  const [batches, setBatches] = useState<Batch[]>([])
+  const [attendance, setAttendance] = useState<AttendanceSummary | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  // Editable fields
+  const [editData, setEditData] = useState<Partial<Student>>({})
+
+  useEffect(() => {
+    if (id) {
+      loadStudentDetails()
+    }
+  }, [id])
+
+  const loadStudentDetails = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      // Load student from enrollments table - use .maybeSingle() to avoid error on not found
+      const { data: studentData, error: studentError } = await db
+        .from('enrollments')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+
+      // Handle student not found without logging as error
+      if (studentError) {
+        // Only log actual errors, not "not found"
+        if (studentError.status !== 404 && studentError.message !== 'No rows found') {
+          console.error('Error loading student details:', studentError)
+        }
+        setStudent(null)
+        setLoading(false)
+        return
+      }
+
+      if (!studentData) {
+        setStudent(null)
+        setLoading(false)
+        return
+      }
+
+      setStudent(studentData as Student)
+      setEditData(studentData as Student)
+
+      // Load batches from batch_ids array
+      if (studentData.batch_ids && studentData.batch_ids.length > 0) {
+        // Get batch details
+        const { data: batchDetails } = await db
+          .from('batches')
+          .select('id, name, day_of_week, start_time, end_time')
+          .in('id', studentData.batch_ids)
+        
+        setBatches((batchDetails || []) as Batch[])
+      } else {
+        setBatches([])
+      }
+
+      // Load attendance summary using student_id
+      const { data: attendanceData } = await db
+        .from('attendance')
+        .select('status')
+        .eq('student_id', studentData.student_id)
+
+      if (attendanceData) {
+        const total = attendanceData.length
+        const present = attendanceData.filter(
+          (a) => a.status === 'PRESENT' || a.status === 'COMPENSATION_PRESENT'
+        ).length
+        const absent = attendanceData.filter((a) => a.status === 'ABSENT').length
+        const percentage = total > 0 ? Math.round((present / total) * 100) : 0
+
+        setAttendance({ total_classes: total, present, absent, percentage })
+      }
+    } catch (err: any) {
+      // Only log unexpected errors
+      console.error('Unexpected error loading student details:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      setError('')
+
+      const { error: updateError } = await db
+        .from('enrollments')
+        .update({
+          student_first_name: editData.student_first_name,
+          student_last_name: editData.student_last_name,
+          student_date_of_birth: editData.student_date_of_birth,
+          student_gender: editData.student_gender,
+          student_email: editData.student_email,
+          student_phone: editData.student_phone,
+          student_address: editData.student_address,
+          student_school_name: editData.student_school_name,
+          student_grade: editData.student_grade,
+        })
+        .eq('id', id)
+
+      if (updateError) throw updateError
+
+      setSuccess('Student details updated successfully')
+      setIsEditing(false)
+      await loadStudentDetails()
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err: any) {
+      console.error('Error updating student:', err)
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handlePauseResume = async () => {
+    if (!student) return
+
+    try {
+      setSaving(true)
+      const isPaused = student.status === 'PAUSED'
+      const newStatus = isPaused ? 'ACTIVE' : 'PAUSED'
+
+      const { error: updateError } = await db
+        .from('enrollments')
+        .update({
+          status: newStatus,
+          paused_at: isPaused ? null : new Date().toISOString(),
+          paused_reason: isPaused ? null : 'Paused by admin',
+        })
+        .eq('id', id)
+
+      if (updateError) throw updateError
+
+      setSuccess(isPaused ? 'Student resumed' : 'Student paused')
+      await loadStudentDetails()
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err: any) {
+      console.error('Error pausing/resuming student:', err)
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'bg-green-100 text-green-800 border-green-200'
+      case 'PAUSED':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'INACTIVE':
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'LEFT':
+        return 'bg-red-100 text-red-800 border-red-200'
+      case 'GRADUATED':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-art-indigo mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading student details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!student) {
+    return (
+      <div className="p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Student Not Found</h2>
+          <p className="text-gray-600 mb-4">The student you're looking for doesn't exist.</p>
+          <button
+            onClick={() => navigate('/admin/students')}
+            className="text-art-indigo hover:text-art-indigo/80 font-medium"
+          >
+            ← Back to Students
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-8">
+      {/* Header */}
+      <div className="mb-8">
+        <button
+          onClick={() => navigate('/admin/students')}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back to Students
+        </button>
+
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="w-20 h-20 bg-art-indigo/10 rounded-full flex items-center justify-center">
+              <span className="text-3xl font-bold text-art-indigo">
+                {student.student_first_name[0]}
+                {student.student_last_name[0]}
+              </span>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {student.student_first_name} {student.student_last_name}
+              </h1>
+              <p className="text-gray-600 mt-1">{student.student_id}</p>
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border mt-2 ${getStatusColor(
+                  student.status
+                )}`}
+              >
+                {student.status}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={() => {
+                    setIsEditing(false)
+                    setEditData(student)
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-4 py-2 bg-art-indigo hover:bg-art-indigo/90 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit
+                </button>
+                <button
+                  onClick={handlePauseResume}
+                  disabled={saving}
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                    student.status === 'PAUSED'
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  }`}
+                >
+                  {student.status === 'PAUSED' ? (
+                    <>
+                      <Play className="w-4 h-4" />
+                      Resume
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="w-4 h-4" />
+                      Pause
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Alerts */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-red-800 text-sm">{error}</p>
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <p className="text-green-800 text-sm">{success}</p>
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left Column - Student Info */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Personal Information */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Personal Information
+            </h2>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  First Name
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData.student_first_name || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_first_name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{student.student_first_name}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData.student_last_name || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_last_name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{student.student_last_name}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date of Birth
+                </label>
+                {isEditing ? (
+                  <input
+                    type="date"
+                    value={editData.student_date_of_birth || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_date_of_birth: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">
+                    {student.student_date_of_birth
+                      ? format(new Date(student.student_date_of_birth), 'MMM dd, yyyy')
+                      : 'Not provided'}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Gender
+                </label>
+                {isEditing ? (
+                  <select
+                    value={editData.student_gender || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_gender: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  >
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                ) : (
+                  <p className="text-gray-900">{student.student_gender || 'Not provided'}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email
+                </label>
+                {isEditing ? (
+                  <input
+                    type="email"
+                    value={editData.student_email || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{student.student_email || 'Not provided'}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Phone
+                </label>
+                {isEditing ? (
+                  <input
+                    type="tel"
+                    value={editData.student_phone || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{student.student_phone || 'Not provided'}</p>
+                )}
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Address
+                </label>
+                {isEditing ? (
+                  <textarea
+                    value={editData.student_address || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_address: e.target.value })
+                    }
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{student.student_address || 'Not provided'}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <School className="w-4 h-4" />
+                  School
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData.student_school_name || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_school_name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{student.student_school_name || 'Not provided'}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData.student_grade || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_grade: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{student.student_grade || 'Not provided'}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Parents/Guardians */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Parent/Guardian Information
+            </h2>
+
+            {!student.parent_first_name && !student.parent_phone ? (
+              <p className="text-gray-600">No parent information available</p>
+            ) : (
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="space-y-3">
+                  {student.parent_first_name && (
+                    <div>
+                      <p className="text-sm text-gray-600">Name</p>
+                      <p className="font-medium text-gray-900">
+                        {student.parent_first_name} {student.parent_last_name || ''}
+                      </p>
+                    </div>
+                  )}
+                  {student.parent_relationship && (
+                    <div>
+                      <p className="text-sm text-gray-600">Relationship</p>
+                      <p className="font-medium text-gray-900">{student.parent_relationship}</p>
+                    </div>
+                  )}
+                  {student.parent_phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-gray-600" />
+                      <span className="text-gray-900">{student.parent_phone}</span>
+                    </div>
+                  )}
+                  {student.parent_email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-600" />
+                      <span className="text-gray-900">{student.parent_email}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column - Summary Cards */}
+        <div className="space-y-6">
+          {/* Enrollment Info */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Enrollment
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div>
+                <p className="text-gray-600">Enrolled On</p>
+                <p className="font-medium text-gray-900">
+                  {format(new Date(student.created_at), 'MMM dd, yyyy')}
+                </p>
+              </div>
+              {student.paused_at && (
+                <div>
+                  <p className="text-gray-600">Paused On</p>
+                  <p className="font-medium text-gray-900">
+                    {format(new Date(student.paused_at), 'MMM dd, yyyy')}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Batches */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Assigned Batches
+            </h3>
+            {batches.length === 0 ? (
+              <p className="text-sm text-gray-600">No batches assigned</p>
+            ) : (
+              <div className="space-y-2">
+                {batches.map((batch) => (
+                  <div
+                    key={batch.id}
+                    className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <p className="font-medium text-gray-900 text-sm">
+                      {batch.day_of_week}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {batch.start_time} - {batch.end_time}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Attendance Summary */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Attendance Summary
+            </h3>
+            {attendance ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Total Classes</span>
+                  <span className="font-semibold text-gray-900">
+                    {attendance.total_classes}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Present</span>
+                  <span className="font-semibold text-green-600">
+                    {attendance.present}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Absent</span>
+                  <span className="font-semibold text-red-600">
+                    {attendance.absent}
+                  </span>
+                </div>
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-gray-600">Attendance Rate</span>
+                    <span className="font-semibold text-gray-900">
+                      {attendance.percentage}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-art-indigo rounded-full h-2 transition-all"
+                      style={{ width: `${attendance.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600">No attendance data</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
