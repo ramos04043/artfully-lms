@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { db } from '@/lib/db-api'
-import { Users, Clock, Plus, Edit, AlertCircle, X, Save, CheckCircle } from 'lucide-react'
+import { Users, Clock, Plus, Edit, AlertCircle, X, Save, CheckCircle, Search } from 'lucide-react'
+import { format } from 'date-fns'
 
 interface Batch {
   id: string
@@ -20,6 +21,15 @@ interface Programme {
   name: string
 }
 
+interface BatchStudent {
+  id: string
+  student_id: string
+  student_first_name: string
+  student_last_name: string
+  status: string
+  batch_ids: string[]
+}
+
 export default function BatchesPage() {
   const [batches, setBatches] = useState<Batch[]>([])
   const [programmes, setProgrammes] = useState<Programme[]>([])
@@ -28,6 +38,15 @@ export default function BatchesPage() {
   const [success, setSuccess] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
+  
+  // Student view states
+  const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null)
+  const [batchStudents, setBatchStudents] = useState<BatchStudent[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(false)
+  const [allBatches, setAllBatches] = useState<Batch[]>([])
+  const [reassigningStudent, setReassigningStudent] = useState<string | null>(null)
+  
+  // Removed add student functionality - use student detail page for batch assignment
 
   // Form fields
   const [batchName, setBatchName] = useState('')
@@ -90,31 +109,29 @@ export default function BatchesPage() {
         throw new Error(errorMsg)
       }
 
-      // For each batch, count enrolled students
-      const batchesWithCapacity = await Promise.all(
-        (batchData || []).map(async (batch) => {
-          // Simply count all active student_batches records
-          const { data: enrollments, error: enrollError } = await db
-            .from('student_batches')
-            .select('id')
-            .eq('batch_id', batch.id)
-            .eq('is_active', true)
+      // For each batch, count enrolled students from enrollments table
+      // First, get all enrollments once
+      const { data: allEnrollments } = await db
+        .from('enrollments')
+        .select('id, batch_ids, status')
+      
+      const batchesWithCapacity = (batchData || []).map(batch => {
+        // Count students who have this batch in their batch_ids array and are active
+        const activeCount = (allEnrollments || []).filter(enrollment => 
+          enrollment.batch_ids && 
+          enrollment.batch_ids.includes(batch.id) &&
+          enrollment.status === 'ACTIVE'
+        ).length
 
-          if (enrollError) {
-            console.error('Enrollment count error:', enrollError)
-          }
-
-          const activeCount = enrollments?.length || 0
-
-          return {
-            ...batch,
-            enrolled_count: activeCount,
-            remaining_capacity: batch.max_capacity - activeCount,
-          }
-        })
-      )
+        return {
+          ...batch,
+          enrolled_count: activeCount,
+          remaining_capacity: batch.max_capacity - activeCount,
+        }
+      })
 
       setBatches(batchesWithCapacity)
+      setAllBatches(batchesWithCapacity) // Store for batch reassignment dropdown
     } catch (err: any) {
       console.error('Error loading batches:', err)
       setError(err.message || 'Failed to load batches')
@@ -122,6 +139,171 @@ export default function BatchesPage() {
       setLoading(false)
     }
   }
+
+  const handleBatchClick = async (batch: Batch) => {
+    setSelectedBatch(batch)
+    setLoadingStudents(true)
+    setBatchStudents([])
+    
+    try {
+      // Get ALL active enrollments (not just ones assigned to this batch)
+      const { data: allEnrollments, error: enrollError } = await db
+        .from('enrollments')
+        .select('*')
+        .eq('status', 'ACTIVE')
+      
+      console.log('📊 Batch clicked:', batch.name, batch.id)
+      console.log('📊 Total active students found:', allEnrollments?.length || 0)
+      
+      if (enrollError) {
+        console.error('❌ Error fetching enrollments:', enrollError)
+        throw enrollError
+      }
+      
+      // Show ALL active students, not just ones in this batch
+      setBatchStudents((allEnrollments || []) as BatchStudent[])
+    } catch (err) {
+      console.error('Error loading students:', err)
+      setError('Failed to load students')
+    } finally {
+      setLoadingStudents(false)
+    }
+  }
+
+  const handleAssignStudent = async (studentEnrollmentId: string, student: BatchStudent, newBatchId: string) => {
+    setReassigningStudent(studentEnrollmentId)
+    try {
+      // Find the target batch
+      const targetBatch = allBatches.find(b => b.id === newBatchId)
+      if (!targetBatch) {
+        throw new Error('Target batch not found')
+      }
+      
+      if (targetBatch.remaining_capacity <= 0) {
+        throw new Error(`Cannot assign student: ${targetBatch.name} is at full capacity`)
+      }
+      
+      // Get current enrollment record
+      const { data: enrollmentData, error: fetchError } = await db
+        .from('enrollments')
+        .select('*')
+        .eq('id', studentEnrollmentId)
+      
+      if (fetchError) throw fetchError
+      if (!enrollmentData || enrollmentData.length === 0) throw new Error('Student not found')
+      
+      const enrollment = enrollmentData[0]
+      
+      // Add batch to batch_ids array
+      const currentBatchIds = enrollment.batch_ids || []
+      
+      // Check if already in target batch
+      if (currentBatchIds.includes(newBatchId)) {
+        throw new Error('Student is already enrolled in this batch')
+      }
+      
+      const newBatchIds = [...currentBatchIds, newBatchId]
+      
+      // Update enrollment with new batch_ids
+      const { error: updateError } = await db
+        .from('enrollments')
+        .update({ batch_ids: newBatchIds })
+        .eq('id', studentEnrollmentId)
+      
+      if (updateError) throw updateError
+      
+      setSuccess(
+        `Successfully assigned ${student.student_first_name} ${student.student_last_name} to ${targetBatch.name}`
+      )
+      
+      // Reload students and update batch counts
+      await handleBatchClick(selectedBatch!)
+      await loadBatches()
+      
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (err: any) {
+      console.error('Error assigning student:', err)
+      setError(err.message || 'Failed to assign student')
+      setTimeout(() => setError(''), 5000)
+    } finally {
+      setReassigningStudent(null)
+    }
+  }
+
+  const handleReassignStudent = async (studentEnrollmentId: string, student: BatchStudent, newBatchId: string) => {
+    if (!selectedBatch) return
+    
+    setReassigningStudent(studentEnrollmentId)
+    try {
+      // Prevent reassigning to the same batch
+      if (selectedBatch.id === newBatchId) {
+        throw new Error('Student is already in this batch')
+      }
+      
+      // Find the target batch to check capacity
+      const targetBatch = allBatches.find(b => b.id === newBatchId)
+      if (!targetBatch) {
+        throw new Error('Target batch not found')
+      }
+      
+      if (targetBatch.remaining_capacity <= 0) {
+        throw new Error(`Cannot move student: ${targetBatch.name} is at full capacity`)
+      }
+      
+      // Get current enrollment record
+      const { data: enrollmentData, error: fetchError } = await db
+        .from('enrollments')
+        .select('*')
+        .eq('id', studentEnrollmentId)
+      
+      if (fetchError) throw fetchError
+      if (!enrollmentData || enrollmentData.length === 0) throw new Error('Student not found')
+      
+      const enrollment = enrollmentData[0]
+      
+      // Update batch_ids array: remove old batch, add new batch
+      const currentBatchIds = enrollment.batch_ids || []
+      const newBatchIds = currentBatchIds.filter((id: string) => id !== selectedBatch.id)
+      
+      // Check if already in target batch
+      if (currentBatchIds.includes(newBatchId)) {
+        throw new Error('Student is already enrolled in the target batch')
+      }
+      
+      newBatchIds.push(newBatchId)
+      
+      // Update enrollment with new batch_ids
+      const { error: updateError } = await db
+        .from('enrollments')
+        .update({ batch_ids: newBatchIds })
+        .eq('id', studentEnrollmentId)
+      
+      if (updateError) throw updateError
+      
+      setSuccess(
+        `Successfully moved ${student.student_first_name} ${student.student_last_name} from ${selectedBatch.name} to ${targetBatch.name}`
+      )
+      
+      // Reload students for current batch and update batch counts
+      await handleBatchClick(selectedBatch)
+      await loadBatches()
+      
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (err: any) {
+      console.error('Error reassigning student:', err)
+      setError(err.message || 'Failed to reassign student')
+      setTimeout(() => setError(''), 5000)
+    } finally {
+      setReassigningStudent(null)
+    }
+  }
+
+  const closeStudentModal = () => {
+    setSelectedBatch(null)
+    setBatchStudents([])
+  }
+
+  // Removed add student functions - batch assignment should be done from student detail page
 
   const groupedBatches = batches.reduce((acc, batch) => {
     if (!acc[batch.day_of_week]) acc[batch.day_of_week] = []
@@ -295,7 +477,8 @@ VALUES ('${batchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'::tim
                 {dayBatches.map((batch) => (
                   <div
                     key={batch.id}
-                    className="p-4 border-2 border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                    onClick={() => handleBatchClick(batch)}
+                    className="p-4 border-2 border-gray-200 rounded-lg hover:shadow-md hover:border-art-indigo transition-all cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div>
@@ -304,7 +487,13 @@ VALUES ('${batchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'::tim
                           <p className="text-sm text-gray-600">Room {batch.room_number}</p>
                         )}
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Edit functionality can be added here
+                        }}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
                     </div>
@@ -335,6 +524,10 @@ VALUES ('${batchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'::tim
                               batch.remaining_capacity === 1 ? 'spot' : 'spots'
                             } available`
                           : 'Full'}
+                      </div>
+                      
+                      <div className="text-xs text-gray-500 mt-2 text-center">
+                        Click to view students
                       </div>
                     </div>
                   </div>
@@ -515,6 +708,183 @@ VALUES ('${batchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'::tim
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Students Modal */}
+      {selectedBatch && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{selectedBatch.name}</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedBatch.day_of_week} • {selectedBatch.start_time} - {selectedBatch.end_time}
+                  {selectedBatch.room_number && ` • Room ${selectedBatch.room_number}`}
+                </p>
+              </div>
+              <button
+                onClick={closeStudentModal}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-180px)]">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Manage Student Assignments
+                </h3>
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                    {batchStudents.filter(s => s.batch_ids?.includes(selectedBatch.id)).length} in this batch
+                  </span>
+                  <span className="px-3 py-1 bg-art-indigo/10 text-art-indigo rounded-full text-sm font-medium">
+                    {batchStudents.length} total students
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    {selectedBatch.remaining_capacity} spots available
+                  </span>
+                </div>
+              </div>
+              
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  💡 <strong>Tip:</strong> All active students are shown below. Use the dropdown to assign or change batch assignments.
+                </p>
+              </div>
+
+              {loadingStudents ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-art-indigo mx-auto mb-3"></div>
+                  <p className="text-gray-600">Loading students...</p>
+                </div>
+              ) : batchStudents.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-16 h-16 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 text-lg">No active students found</p>
+                  <p className="text-sm text-gray-500 mt-2">Enroll students to manage their batches</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {batchStudents.map((student) => {
+                    // Check if student is currently in the selected batch
+                    const isInSelectedBatch = student.batch_ids?.includes(selectedBatch.id)
+                    // Get student's current batch assignment (first batch in array)
+                    const currentBatchId = student.batch_ids?.[0] || null
+                    
+                    return (
+                      <div
+                        key={student.id}
+                        className={`flex items-center justify-between p-4 rounded-lg border-2 transition-colors ${
+                          isInSelectedBatch 
+                            ? 'border-art-indigo bg-art-indigo/5' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-12 h-12 bg-art-indigo/10 rounded-full flex items-center justify-center">
+                            <span className="text-art-indigo font-semibold">
+                              {student.student_first_name[0]}
+                              {student.student_last_name[0]}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-900">
+                                {student.student_first_name} {student.student_last_name}
+                              </p>
+                              {isInSelectedBatch && (
+                                <span className="px-2 py-0.5 bg-art-indigo text-white text-xs rounded-full">
+                                  In This Batch
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">{student.student_id}</p>
+                          </div>
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                              student.status === 'ACTIVE'
+                                ? 'bg-green-100 text-green-800'
+                                : student.status === 'PAUSED'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {student.status}
+                          </span>
+                        </div>
+                        
+                        <div className="ml-4 min-w-[240px]">
+                          <label className="text-xs text-gray-600 block mb-1">
+                            {currentBatchId ? 'Change Batch:' : 'Assign to Batch:'}
+                          </label>
+                          <select
+                            value={currentBatchId || ''}
+                            onChange={(e) => {
+                              const newBatchId = e.target.value
+                              if (newBatchId && newBatchId !== currentBatchId) {
+                                // If student has a batch, change it. If not, assign new batch
+                                if (currentBatchId) {
+                                  handleReassignStudent(student.id, student, newBatchId)
+                                } else {
+                                  handleAssignStudent(student.id, student, newBatchId)
+                                }
+                              }
+                            }}
+                            disabled={reassigningStudent === student.id}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-art-indigo focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {!currentBatchId && <option value="">-- Not Assigned --</option>}
+                            <optgroup label="Same Day Batches">
+                              {allBatches
+                                .filter(b => b.day_of_week === selectedBatch.day_of_week)
+                                .map((batch) => (
+                                  <option key={batch.id} value={batch.id}>
+                                    {batch.name} • {batch.start_time} • {batch.remaining_capacity} spots
+                                  </option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="Other Day Batches">
+                              {allBatches
+                                .filter(b => b.day_of_week !== selectedBatch.day_of_week)
+                                .map((batch) => (
+                                  <option key={batch.id} value={batch.id}>
+                                    {batch.name} • {batch.day_of_week} • {batch.start_time} • {batch.remaining_capacity} spots
+                                  </option>
+                                ))}
+                            </optgroup>
+                          </select>
+                          {reassigningStudent === student.id && (
+                            <p className="text-xs text-art-indigo mt-1 flex items-center gap-1">
+                              <span className="inline-block w-3 h-3 border-2 border-art-indigo border-t-transparent rounded-full animate-spin"></span>
+                              Processing...
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
+              <p className="text-sm text-gray-600">
+                💡 <strong>Tip:</strong> Use the dropdown to move students between batches. Changes are immediate.
+              </p>
+              <button
+                onClick={closeStudentModal}
+                className="px-6 py-2 bg-art-indigo hover:bg-art-indigo/90 text-white rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -79,13 +79,13 @@ export default function AdminDashboard() {
 
     const todaysBatches = batches?.length || 0
 
-    // Get active students from enrollments
-    const { data: enrollments } = await db
-      .from('enrollments')
+    // Get active students
+    const { data: students } = await db
+      .from('students')
       .select('id')
       .eq('status', 'ACTIVE')
 
-    const activeStudents = enrollments?.length || 0
+    const activeStudents = students?.length || 0
 
     // Get total pending payments (sum of all payments with status PENDING)
     const { data: payments } = await db
@@ -148,17 +148,37 @@ export default function AdminDashboard() {
     setBatchStudents([])
     
     try {
-      // Get all enrollments and filter those that include this batch_id
-      const { data: allEnrollments } = await db
-        .from('enrollments')
-        .select('*')
+      // Query student_batches to get students in this specific batch
+      const { data: studentBatches, error } = await db
+        .from('student_batches')
+        .select(`
+          id,
+          student_id,
+          students!inner (
+            student_id,
+            first_name,
+            last_name,
+            status
+          )
+        `)
+        .eq('batch_id', batch.id)
+        .eq('is_active', true)
       
-      // Filter enrollments that have this batch in their batch_ids array
-      const studentsInBatch = (allEnrollments || []).filter(enrollment => 
-        enrollment.batch_ids && enrollment.batch_ids.includes(batch.id)
-      )
+      if (error) {
+        console.error('Error fetching students:', error)
+        return
+      }
+
+      // Transform the data to match the expected BatchStudent interface
+      const studentsInBatch = (studentBatches || []).map((sb: any) => ({
+        id: sb.id,
+        student_id: sb.students.student_id,
+        student_first_name: sb.students.first_name,
+        student_last_name: sb.students.last_name,
+        status: sb.students.status,
+      }))
       
-      setBatchStudents(studentsInBatch as BatchStudent[])
+      setBatchStudents(studentsInBatch)
     } catch (err) {
       console.error('Error loading batch students:', err)
     } finally {
