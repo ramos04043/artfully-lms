@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     ZENDBX_URL: str
     ZENDBX_ANON_KEY: str
     ZENDBX_SERVICE_KEY: str
-    DATABASE_URL: str
+    DATABASE_URL: str = ""  # Optional - only needed if using direct PostgreSQL connection
     
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     SMTP_FROM_NAME: str = "Art Studio"
     
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = "redis://localhost:6379/0"  # Optional - only needed if using Celery
     
     # File Upload
     MAX_FILE_SIZE: int = 5242880  # 5MB
