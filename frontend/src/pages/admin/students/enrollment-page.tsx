@@ -32,7 +32,6 @@ export default function EnrollmentPage() {
 
   // Student form fields
   const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [gender, setGender] = useState('')
   const [email, setEmail] = useState('')
@@ -44,7 +43,6 @@ export default function EnrollmentPage() {
   // Parent fields
   const [parentFirstName, setParentFirstName] = useState('')
   const [parentLastName, setParentLastName] = useState('')
-  const [parentEmail, setParentEmail] = useState('')
   const [parentPhone, setParentPhone] = useState('')
   const [relationship, setRelationship] = useState('')
   
@@ -180,7 +178,7 @@ export default function EnrollmentPage() {
 
     try {
       // Validation
-      if (!firstName || !lastName || !parentFirstName || !parentEmail || !parentPhone) {
+      if (!firstName || !parentFirstName || !parentPhone) {
         throw new Error('Please fill in all required fields')
       }
 
@@ -192,7 +190,7 @@ export default function EnrollmentPage() {
       const studentId = `STU${Date.now().toString().slice(-8)}`
 
       console.log('Starting enrollment with new enrollments table...')
-      console.log('Student data:', { firstName, lastName, studentId })
+      console.log('Student data:', { firstName, studentId })
 
       // Convert batch IDs to array format for PostgreSQL
       const batchIdsArray = selectedBatches
@@ -203,7 +201,7 @@ export default function EnrollmentPage() {
       const enrollmentData = {
         student_id: studentId,
         student_first_name: firstName,
-        student_last_name: lastName,
+        student_last_name: '',
         student_date_of_birth: dateOfBirth || null,
         student_gender: gender || null,
         student_email: email || null,
@@ -213,7 +211,7 @@ export default function EnrollmentPage() {
         student_grade: grade || null,
         parent_first_name: parentFirstName,
         parent_last_name: parentLastName || '',
-        parent_email: parentEmail,
+        parent_email: '',
         parent_phone: parentPhone,
         parent_relationship: relationship || 'Parent',
         batch_ids: batchIdsArray,
@@ -324,27 +322,14 @@ export default function EnrollmentPage() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Student Information</h2>
               
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name <span className="text-red-500">*</span>
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
                   />
@@ -450,19 +435,6 @@ export default function EnrollmentPage() {
                     type="text"
                     value={parentLastName}
                     onChange={(e) => setParentLastName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={parentEmail}
-                    onChange={(e) => setParentEmail(e.target.value)}
-                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
                   />
                 </div>
@@ -584,7 +556,7 @@ export default function EnrollmentPage() {
                       if (!batch) return null
                       return (
                         <div key={batchId} className="text-sm text-gray-600">
-                          • {batch.day_of_week} {batch.start_time} - {batch.end_time}
+                          ï¿½ {batch.day_of_week} {batch.start_time} - {batch.end_time}
                         </div>
                       )
                     })}
