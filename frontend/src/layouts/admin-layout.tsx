@@ -16,6 +16,7 @@ import {
   Settings,
   LogOut,
   Palette,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'Batches', href: '/admin/batches', icon: Calendar },
   { name: 'Attendance', href: '/admin/attendance', icon: CheckSquare },
   { name: 'Compensation', href: '/admin/compensation', icon: Clock },
+  { name: 'Sessions', href: '/admin/sessions', icon: BookOpen },
   { name: 'Expenses', href: '/admin/finance/expenses', icon: TrendingDown },
   { name: 'Fees', href: '/admin/fees', icon: Wallet },
   { name: 'Finance', href: '/admin/finance', icon: TrendingUp },

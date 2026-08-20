@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getGreeting } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import { db } from '@/lib/db-api'
@@ -32,6 +33,7 @@ interface BatchStudent {
 
 export default function AdminDashboard() {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [stats, setStats] = useState<DashboardStats>({
     todaysBatches: 0,
     activeStudents: 0,
@@ -79,21 +81,21 @@ export default function AdminDashboard() {
 
     const todaysBatches = batches?.length || 0
 
-    // Get active students
-    const { data: students } = await db
-      .from('students')
+    // Get active students from enrollments table
+    const { data: enrollments } = await db
+      .from('enrollments')
       .select('id')
       .eq('status', 'ACTIVE')
 
-    const activeStudents = students?.length || 0
+    const activeStudents = enrollments?.length || 0
 
-    // Get total pending payments (sum of all payments with status PENDING)
-    const { data: payments } = await db
-      .from('payments')
-      .select('amount')
-      .eq('status', 'PENDING')
+    // Get total pending fees from fee_dues table (sum of amount_pending)
+    const { data: feeDues } = await db
+      .from('fee_dues')
+      .select('amount_pending')
+      .in('status', ['PENDING', 'PARTIAL'])
 
-    const pendingFees = payments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0
+    const pendingFees = feeDues?.reduce((sum, fee) => sum + (fee.amount_pending || 0), 0) || 0
 
     // Get today's attendance rate
     const { data: todayAttendance } = await db
@@ -102,8 +104,16 @@ export default function AdminDashboard() {
       .eq('class_date', today)
 
     const totalMarked = todayAttendance?.length || 0
-    const presentCount = todayAttendance?.filter(a => a.status === 'PRESENT').length || 0
+    const presentCount = todayAttendance?.filter(a => a.status === 'PRESENT' || a.status === 'COMPENSATION_PRESENT').length || 0
     const attendanceRate = totalMarked > 0 ? Math.round((presentCount / totalMarked) * 100) : 0
+
+    console.log('📊 Dashboard Stats:', {
+      todaysBatches,
+      activeStudents,
+      pendingFees,
+      attendanceToday: attendanceRate,
+      todayAttendanceData: { totalMarked, presentCount }
+    })
 
     return {
       todaysBatches,
@@ -215,31 +225,46 @@ export default function AdminDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-        <div className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-soft-indigo">
+        <div 
+          onClick={() => navigate('/admin/batches')}
+          className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-soft-indigo cursor-pointer hover:shadow-lg hover:border-art-indigo transition-all"
+        >
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="w-4 h-4 md:w-5 md:h-5 text-art-indigo" />
             <p className="text-xs md:text-sm text-muted-foreground">Today's Batches</p>
           </div>
           <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.todaysBatches}</p>
+          <p className="text-xs text-art-indigo mt-2 font-medium">Click to view →</p>
         </div>
         
-        <div className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-sage">
+        <div 
+          onClick={() => navigate('/admin/students')}
+          className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-sage cursor-pointer hover:shadow-lg hover:border-green-600 transition-all"
+        >
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
             <p className="text-xs md:text-sm text-muted-foreground">Active Students</p>
           </div>
           <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.activeStudents}</p>
+          <p className="text-xs text-green-600 mt-2 font-medium">Click to view →</p>
         </div>
         
-        <div className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-peach">
+        <div 
+          onClick={() => navigate('/admin/fees')}
+          className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-peach cursor-pointer hover:shadow-lg hover:border-orange-600 transition-all"
+        >
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="w-4 h-4 md:w-5 md:h-5 text-orange-600" />
             <p className="text-xs md:text-sm text-muted-foreground">Pending Fees</p>
           </div>
           <p className="text-xl md:text-3xl font-bold text-foreground">₹{stats.pendingFees.toLocaleString()}</p>
+          <p className="text-xs text-orange-600 mt-2 font-medium">Click to view →</p>
         </div>
         
-        <div className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-lavender">
+        <div 
+          onClick={() => navigate('/admin/attendance')}
+          className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-lavender cursor-pointer hover:shadow-lg hover:border-purple-600 transition-all"
+        >
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
             <p className="text-xs md:text-sm text-muted-foreground">Attendance Today</p>
@@ -247,6 +272,7 @@ export default function AdminDashboard() {
           <p className="text-2xl md:text-3xl font-bold text-foreground">
             {stats.attendanceToday}%
           </p>
+          <p className="text-xs text-purple-600 mt-2 font-medium">Click to view →</p>
         </div>
       </div>
 
