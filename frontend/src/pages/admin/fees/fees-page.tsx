@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { db } from '@/lib/db-api'
 import { format } from 'date-fns'
-import { DollarSign, Plus, Search, Filter, CreditCard, Banknote, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import { DollarSign, Plus, Search, Filter, CreditCard, Banknote, AlertCircle, CheckCircle, XCircle, Edit, Save, X, Trash2 } from 'lucide-react'
 
 interface FinancialTransaction {
   id: string
@@ -51,6 +51,10 @@ export default function FeesPage() {
   const [transactionRef, setTransactionRef] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Edit state
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null)
+  const [editData, setEditData] = useState<Partial<FinancialTransaction>>({})
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -166,6 +170,76 @@ export default function FeesPage() {
     } catch (err: any) {
       console.error('Error adding payment:', err)
       setError(err.message || 'Failed to add payment')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const startEdit = (transaction: FinancialTransaction) => {
+    setEditingTransactionId(transaction.id)
+    setEditData({
+      amount: transaction.amount,
+      transaction_date: transaction.transaction_date,
+      description: transaction.description,
+    })
+  }
+
+  const cancelEdit = () => {
+    setEditingTransactionId(null)
+    setEditData({})
+  }
+
+  const handleSaveEdit = async (transactionId: string) => {
+    try {
+      setSaving(true)
+      setError('')
+
+      const { error: updateError } = await db
+        .from('financial_transactions')
+        .update({
+          amount: editData.amount,
+          transaction_date: editData.transaction_date,
+          description: editData.description,
+        })
+        .eq('id', transactionId)
+
+      if (updateError) throw updateError
+
+      setSuccess('Payment updated successfully!')
+      setEditingTransactionId(null)
+      setEditData({})
+      await loadData()
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err: any) {
+      console.error('Error updating payment:', err)
+      setError(err.message || 'Failed to update payment')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    if (!confirm('Are you sure you want to delete this payment record?')) {
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError('')
+
+      const { error: deleteError } = await db
+        .from('financial_transactions')
+        .delete()
+        .eq('id', transactionId)
+
+      if (deleteError) throw deleteError
+
+      setSuccess('Payment deleted successfully!')
+      await loadData()
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err: any) {
+      console.error('Error deleting payment:', err)
+      setError(err.message || 'Failed to delete payment')
     } finally {
       setSaving(false)
     }
@@ -525,12 +599,15 @@ export default function FeesPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Description
                 </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="text-gray-400">
                       <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p className="text-lg font-medium">No payments found</p>
@@ -542,6 +619,7 @@ export default function FeesPage() {
                 filteredTransactions.map((transaction) => {
                   const studentInfo = getStudentInfo(transaction.reference_id)
                   const paymentMode = getPaymentMode(transaction.account_id)
+                  const isEditing = editingTransactionId === transaction.id
 
                   return (
                     <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
@@ -550,7 +628,17 @@ export default function FeesPage() {
                         <div className="text-xs text-gray-500">{studentInfo.studentId}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-gray-900">₹{transaction.amount.toFixed(2)}</div>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editData.amount || ''}
+                            onChange={(e) => setEditData({ ...editData, amount: parseFloat(e.target.value) })}
+                            className="text-sm px-2 py-1 border rounded w-24"
+                            step="0.01"
+                          />
+                        ) : (
+                          <div className="text-sm font-bold text-gray-900">₹{transaction.amount.toFixed(2)}</div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
@@ -569,14 +657,71 @@ export default function FeesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {format(new Date(transaction.transaction_date), 'MMM dd, yyyy')}
-                        </div>
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            value={editData.transaction_date || ''}
+                            onChange={(e) => setEditData({ ...editData, transaction_date: e.target.value })}
+                            className="text-sm px-2 py-1 border rounded"
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-900">
+                            {format(new Date(transaction.transaction_date), 'MMM dd, yyyy')}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-500 max-w-md">
-                          {transaction.description}
-                        </div>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editData.description || ''}
+                            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                            className="text-sm px-2 py-1 border rounded w-full"
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-500 max-w-md">
+                            {transaction.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {isEditing ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleSaveEdit(transaction.id)}
+                              disabled={saving}
+                              className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                              title="Save"
+                            >
+                              <Save className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="text-gray-600 hover:text-gray-800"
+                              title="Cancel"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => startEdit(transaction)}
+                              className="text-art-indigo hover:text-art-indigo/80"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTransaction(transaction.id)}
+                              disabled={saving}
+                              className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )
