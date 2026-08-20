@@ -121,7 +121,7 @@ export default function FinanceOverviewPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-purple-200 mb-2 text-sm md:text-base">Total Balance</p>
-            <h2 className="text-4xl md:text-5xl font-bold">?{totalBalance.toFixed(2)}</h2>
+            <h2 className="text-4xl md:text-5xl font-bold">₹{totalBalance.toFixed(2)}</h2>
             <p className="text-purple-200 mt-3 md:mt-4 text-xs md:text-base">Across all accounts</p>
           </div>
           <Wallet className="w-16 md:w-20 h-16 md:h-20 text-purple-300 opacity-50" />
@@ -135,7 +135,7 @@ export default function FinanceOverviewPage() {
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">OPEX (Operating)</p>
-              <p className="text-2xl md:text-3xl font-bold text-blue-600">?{totalOpex.toFixed(2)}</p>
+              <p className="text-2xl md:text-3xl font-bold text-blue-600">₹{totalOpex.toFixed(2)}</p>
             </div>
             <div className="w-10 md:w-12 h-10 md:h-12 rounded-full bg-blue-100 flex items-center justify-center">
               <TrendingUp className="w-5 md:w-6 h-5 md:h-6 text-blue-600" />
@@ -144,11 +144,11 @@ export default function FinanceOverviewPage() {
           <div className="grid grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4 pt-3 md:pt-4 border-t">
             <div>
               <p className="text-xs text-gray-500">Bank</p>
-              <p className="text-base md:text-lg font-semibold text-gray-900">?{totals.opexBank.toFixed(2)}</p>
+              <p className="text-base md:text-lg font-semibold text-gray-900">₹{totals.opexBank.toFixed(2)}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Cash</p>
-              <p className="text-base md:text-lg font-semibold text-gray-900">?{totals.opexCash.toFixed(2)}</p>
+              <p className="text-base md:text-lg font-semibold text-gray-900">₹{totals.opexCash.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function FinanceOverviewPage() {
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">CAPEX (Capital)</p>
-              <p className="text-2xl md:text-3xl font-bold text-green-600">?{totalCapex.toFixed(2)}</p>
+              <p className="text-2xl md:text-3xl font-bold text-green-600">₹{totalCapex.toFixed(2)}</p>
             </div>
             <div className="w-10 md:w-12 h-10 md:h-12 rounded-full bg-green-100 flex items-center justify-center">
               <TrendingDown className="w-5 md:w-6 h-5 md:h-6 text-green-600" />
@@ -167,11 +167,11 @@ export default function FinanceOverviewPage() {
           <div className="grid grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4 pt-3 md:pt-4 border-t">
             <div>
               <p className="text-xs text-gray-500">Bank</p>
-              <p className="text-base md:text-lg font-semibold text-gray-900">?{totals.capexBank.toFixed(2)}</p>
+              <p className="text-base md:text-lg font-semibold text-gray-900">₹{totals.capexBank.toFixed(2)}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Cash</p>
-              <p className="text-base md:text-lg font-semibold text-gray-900">?{totals.capexCash.toFixed(2)}</p>
+              <p className="text-base md:text-lg font-semibold text-gray-900">₹{totals.capexCash.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -290,10 +290,10 @@ export default function FinanceOverviewPage() {
                 {account.account_name}
               </h3>
               <p className="text-2xl font-bold text-gray-900">
-                ?{account.current_balance.toFixed(2)}
+                ₹{account.current_balance.toFixed(2)}
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Opening: ?{account.opening_balance.toFixed(2)}
+                Opening: ₹{account.opening_balance.toFixed(2)}
               </p>
             </div>
           ))}
@@ -413,11 +413,11 @@ export default function FinanceOverviewPage() {
                               isInflow ? 'text-green-600' : 'text-red-600'
                             }`}
                           >
-                            {isInflow ? '+' : '-'}?{transaction.amount.toFixed(2)}
+                            {isInflow ? '+' : '-'}₹{transaction.amount.toFixed(2)}
                           </div>
                           {transaction.balance_after !== null && transaction.balance_after !== undefined && (
                             <div className="text-xs text-gray-500">
-                              Bal: ?{transaction.balance_after.toFixed(2)}
+                              Bal: ₹{transaction.balance_after.toFixed(2)}
                             </div>
                           )}
                         </td>

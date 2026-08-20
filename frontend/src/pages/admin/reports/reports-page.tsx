@@ -408,7 +408,7 @@ export default function StatisticsPage() {
             <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
           </div>
           <p className="text-xs md:text-sm opacity-90 mb-1">Monthly Revenue</p>
-          <p className="text-2xl md:text-3xl font-bold">?{stats.monthlyRevenue.toFixed(0)}</p>
+          <p className="text-2xl md:text-3xl font-bold">₹{stats.monthlyRevenue.toFixed(0)}</p>
           <p className="text-xs mt-2 opacity-75">Fee collections</p>
         </div>
 
@@ -419,7 +419,7 @@ export default function StatisticsPage() {
             <TrendingDown className="w-4 h-4 md:w-5 md:h-5" />
           </div>
           <p className="text-xs md:text-sm opacity-90 mb-1">Monthly Expenses</p>
-          <p className="text-2xl md:text-3xl font-bold">?{stats.monthlyExpenses.toFixed(0)}</p>
+          <p className="text-2xl md:text-3xl font-bold">₹{stats.monthlyExpenses.toFixed(0)}</p>
           <p className="text-xs mt-2 opacity-75">All categories</p>
         </div>
 
@@ -439,7 +439,7 @@ export default function StatisticsPage() {
           </div>
           <p className="text-xs md:text-sm opacity-90 mb-1">Net Income</p>
           <p className="text-2xl md:text-3xl font-bold">
-            ?{Math.abs(stats.netIncome).toFixed(0)}
+            ₹{Math.abs(stats.netIncome).toFixed(0)}
           </p>
           <p className="text-xs mt-2 opacity-75">{stats.netIncome >= 0 ? 'Profit' : 'Loss'}</p>
         </div>
@@ -514,7 +514,7 @@ export default function StatisticsPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value: number) => `?${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: number) => `₹${value.toFixed(2)}`} />
                 <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} name="Revenue" />
                 <Line type="monotone" dataKey="expenses" stroke="#f59e0b" strokeWidth={2} name="Expenses" />
@@ -581,7 +581,7 @@ export default function StatisticsPage() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `?${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: number) => `₹${value.toFixed(2)}`} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

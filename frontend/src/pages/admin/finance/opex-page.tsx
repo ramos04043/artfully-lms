@@ -85,7 +85,7 @@ export default function OpEXPage() {
           <DollarSign className="w-8 h-8" />
           <p className="text-lg opacity-90">Total Monthly OpEx</p>
         </div>
-        <p className="text-4xl font-bold">?{opex.totalMonthly.toLocaleString()}</p>
+        <p className="text-4xl font-bold">₹{opex.totalMonthly.toLocaleString()}</p>
         <p className="text-sm opacity-75 mt-2">Operational expenses this month</p>
       </div>
 
@@ -110,7 +110,7 @@ export default function OpEXPage() {
                 <div key={index}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">{cat.category}</span>
-                    <span className="text-gray-600">?{cat.amount.toLocaleString()}</span>
+                    <span className="text-gray-600">₹{cat.amount.toLocaleString()}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div

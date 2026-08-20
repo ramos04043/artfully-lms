@@ -402,7 +402,7 @@ export default function FeesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">Total Collected</p>
-              <p className="text-2xl md:text-3xl font-bold text-gray-900">?{stats.total.toFixed(2)}</p>
+              <p className="text-2xl md:text-3xl font-bold text-gray-900">₹{stats.total.toFixed(2)}</p>
             </div>
             <DollarSign className="w-8 md:w-10 h-8 md:h-10 text-gray-400" />
           </div>
@@ -412,7 +412,7 @@ export default function FeesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">Bank Payments</p>
-              <p className="text-xl md:text-3xl font-bold text-blue-600">?{stats.bank.toFixed(2)}</p>
+              <p className="text-xl md:text-3xl font-bold text-blue-600">₹{stats.bank.toFixed(2)}</p>
             </div>
             <CreditCard className="w-8 md:w-10 h-8 md:h-10 text-blue-400" />
           </div>
@@ -422,7 +422,7 @@ export default function FeesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">Cash Payments</p>
-              <p className="text-xl md:text-3xl font-bold text-green-600">?{stats.cash.toFixed(2)}</p>
+              <p className="text-xl md:text-3xl font-bold text-green-600">₹{stats.cash.toFixed(2)}</p>
             </div>
             <Banknote className="w-8 md:w-10 h-8 md:h-10 text-green-400" />
           </div>
@@ -550,7 +550,7 @@ export default function FeesPage() {
                         <div className="text-xs text-gray-500">{studentInfo.studentId}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-gray-900">?{transaction.amount.toFixed(2)}</div>
+                        <div className="text-sm font-bold text-gray-900">₹{transaction.amount.toFixed(2)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
