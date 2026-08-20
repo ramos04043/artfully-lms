@@ -221,7 +221,8 @@ export default function EnrollmentPage() {
       console.log('Enrollment insert data:', enrollmentData)
       
       // Call backend API instead of ZendBX directly
-      const response = await fetch('http://localhost:8000/api/enrollment/enrollments', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${API_URL}/api/enrollment/enrollments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
