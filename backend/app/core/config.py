@@ -55,21 +55,33 @@ class Settings(BaseSettings):
             # Default fallback
             origins = []
         
+        # Ensure origins have proper protocol
+        normalized_origins = []
+        for origin in origins:
+            if origin and not origin.startswith('http://') and not origin.startswith('https://'):
+                # Add https:// for non-localhost URLs
+                if 'localhost' in origin or '127.0.0.1' in origin:
+                    normalized_origins.append(f'http://{origin}')
+                else:
+                    normalized_origins.append(f'https://{origin}')
+            elif origin:
+                normalized_origins.append(origin)
+        
         # Always include localhost for development
         localhost_origins = [
             "http://localhost:3000",
             "http://localhost:5173"
         ]
         for origin in localhost_origins:
-            if origin not in origins:
-                origins.append(origin)
+            if origin not in normalized_origins:
+                normalized_origins.append(origin)
         
         # Always include production Vercel URL
         production_url = "https://artfully-lms.vercel.app"
-        if production_url not in origins:
-            origins.append(production_url)
+        if production_url not in normalized_origins:
+            normalized_origins.append(production_url)
         
-        return origins if origins else localhost_origins
+        return normalized_origins if normalized_origins else localhost_origins
     
     # Email
     SMTP_HOST: str = "smtp.gmail.com"

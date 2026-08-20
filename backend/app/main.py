@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.APP_NAME}")
     logger.info(f"Environment: {settings.APP_ENV}")
     logger.info(f"Debug mode: {settings.DEBUG}")
+    logger.info(f"CORS Origins: {settings.CORS_ORIGINS}")
     
     # Validate automation configuration
     logger.info("Validating automation configuration...")
