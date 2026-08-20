@@ -9,15 +9,11 @@ import logging
 from uuid import UUID
 
 from app.zendbx_client import db
-from zendbx import ZenDBX
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# Initialize ZenDBX client for auth operations
-zendbx_client = ZenDBX(settings.ZENDBX_URL, settings.ZENDBX_ANON_KEY)
 
 
 # ============================================================================
