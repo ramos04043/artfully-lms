@@ -57,7 +57,7 @@ class ZendBXClient:
         Args:
             table: Table name
             columns: Columns to select (comma-separated)
-            filters: Filter conditions as dict (e.g., {'status': 'ACTIVE'})
+            filters: Filter conditions as dict (e.g., {'status': 'ACTIVE', 'age_gte': 18})
             order_by: Order by column (e.g., 'created_at.desc')
             limit: Limit number of results
         """
@@ -66,7 +66,34 @@ class ZendBXClient:
         
         if filters:
             for key, value in filters.items():
-                params[key] = f"eq.{value}"
+                # Check if key has an operator suffix
+                if key.endswith('_gte'):
+                    column = key[:-4]  # Remove _gte
+                    params[column] = f"gte.{value}"
+                elif key.endswith('_gt'):
+                    column = key[:-3]  # Remove _gt
+                    params[column] = f"gt.{value}"
+                elif key.endswith('_lte'):
+                    column = key[:-4]  # Remove _lte
+                    params[column] = f"lte.{value}"
+                elif key.endswith('_lt'):
+                    column = key[:-3]  # Remove _lt
+                    params[column] = f"lt.{value}"
+                elif key.endswith('_neq'):
+                    column = key[:-4]  # Remove _neq
+                    params[column] = f"neq.{value}"
+                elif key.endswith('_like'):
+                    column = key[:-5]  # Remove _like
+                    params[column] = f"like.{value}"
+                elif key.endswith('_ilike'):
+                    column = key[:-6]  # Remove _ilike
+                    params[column] = f"ilike.{value}"
+                elif key.endswith('_in'):
+                    column = key[:-3]  # Remove _in
+                    params[column] = f"in.({value})"
+                else:
+                    # Default to eq operator
+                    params[key] = f"eq.{value}"
         
         if order_by:
             params['order'] = order_by
