@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod
     def parse_cors_origins(cls, v):
-        """Parse CORS_ORIGINS from various formats and add common deployment URLs"""
+        """Parse CORS_ORIGINS from various formats"""
         origins = []
         
         if isinstance(v, str):
@@ -53,19 +53,21 @@ class Settings(BaseSettings):
             origins = v
         else:
             # Default fallback
-            origins = ["http://localhost:3000", "http://localhost:5173"]
+            origins = []
         
-        # Always add common deployment domains if not present
-        common_domains = [
-            "https://artfully-lms.vercel.app",
-            "https://artfully-lms-frontend.onrender.com"
+        # Always include localhost for development
+        localhost_origins = [
+            "http://localhost:3000",
+            "http://localhost:5173"
         ]
+        for origin in localhost_origins:
+            if origin not in origins:
+                origins.append(origin)
         
-        for domain in common_domains:
-            if domain not in origins:
-                origins.append(domain)
+        # Note: Vercel preview deployments (*.vercel.app) are handled via allow_origin_regex
+        # Only add specific production Vercel URLs here if needed
         
-        return origins
+        return origins if origins else localhost_origins
     
     # Email
     SMTP_HOST: str = "smtp.gmail.com"
