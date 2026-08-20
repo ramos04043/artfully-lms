@@ -293,7 +293,7 @@ export default function ExpensesPage() {
   }
 
   const handleDeleteExpense = async (expenseId: string) => {
-    if (!confirm('Are you sure you want to delete this expense?')) {
+    if (!confirm('Are you sure you want to delete this expense? This will also adjust the account balance.')) {
       return
     }
 
@@ -301,6 +301,30 @@ export default function ExpensesPage() {
       setSaving(true)
       setError('')
 
+      // Step 1: Get the expense details before deleting
+      const { data: expenseData, error: fetchError } = await db
+        .from('expenses')
+        .select('*')
+        .eq('id', expenseId)
+        .single()
+
+      if (fetchError) throw fetchError
+      if (!expenseData) throw new Error('Expense not found')
+
+      // Step 2: Get the account details
+      const { data: accountData, error: accountError } = await db
+        .from('financial_accounts')
+        .select('*')
+        .eq('id', expenseData.account_id)
+        .single()
+
+      if (accountError) throw accountError
+      if (!accountData) throw new Error('Account not found')
+
+      // Step 3: Calculate new balance (add back the expense amount since we're reversing the deduction)
+      const newBalance = accountData.current_balance + expenseData.amount
+
+      // Step 4: Delete the expense
       const { error: deleteError } = await db
         .from('expenses')
         .delete()
@@ -308,9 +332,30 @@ export default function ExpensesPage() {
 
       if (deleteError) throw deleteError
 
-      setSuccess('Expense deleted successfully!')
+      // Step 5: Update the account balance
+      const { error: balanceError } = await db
+        .from('financial_accounts')
+        .update({ current_balance: newBalance })
+        .eq('id', expenseData.account_id)
+
+      if (balanceError) throw balanceError
+
+      // Step 6: Delete the associated transaction if it exists
+      if (expenseData.transaction_id) {
+        const { error: transactionError } = await db
+          .from('financial_transactions')
+          .delete()
+          .eq('id', expenseData.transaction_id)
+
+        if (transactionError) {
+          console.warn('Failed to delete associated transaction:', transactionError)
+          // Don't throw error here as the main expense is already deleted
+        }
+      }
+
+      setSuccess(`Expense deleted successfully! Account balance updated to ₹${newBalance.toFixed(2)}`)
       await loadData()
-      setTimeout(() => setSuccess(''), 3000)
+      setTimeout(() => setSuccess(''), 5000)
     } catch (err: any) {
       console.error('Error deleting expense:', err)
       setError(err.message || 'Failed to delete expense')
