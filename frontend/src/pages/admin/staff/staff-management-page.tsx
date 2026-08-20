@@ -146,11 +146,12 @@ export default function StaffManagementPage() {
     
     try {
       // Get staff.id for this user
-      const { data: staffRecord } = await db
+      const { data: staffRecords } = await db
         .from('staff')
         .select('id')
         .eq('user_id', staffMember.id)
-        .single()
+
+      const staffRecord = staffRecords?.[0]
 
       if (!staffRecord) {
         setError('Staff record not found')
@@ -599,7 +600,7 @@ export default function StaffManagementPage() {
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{batch.name}</p>
                           <p className="text-sm text-gray-600">
-                            {batch.day_of_week} • {batch.start_time} - {batch.end_time}
+                            {batch.day_of_week} ï¿½ {batch.start_time} - {batch.end_time}
                           </p>
                         </div>
                       </div>
@@ -715,7 +716,7 @@ export default function StaffManagementPage() {
                     type="password"
                     value={newStaffForm.password}
                     onChange={(e) => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
-                    placeholder="••••••••"
+                    placeholder="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½"
                     minLength={6}
                     required
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-art-indigo focus:border-transparent"

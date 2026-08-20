@@ -32,11 +32,12 @@ export default function HistoryPage() {
       setLoading(true)
 
       // Get staff details
-      const { data: staffData } = await db
+      const { data: staffRecords } = await db
         .from('staff')
         .select('id')
         .eq('user_id', user.id)
-        .single()
+
+      const staffData = staffRecords?.[0]
 
       if (!staffData) {
         setHistory([])

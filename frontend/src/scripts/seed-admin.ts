@@ -44,11 +44,12 @@ async function seedAdmin() {
   try {
     // Step 1: Check if admin already exists in user_profiles
     console.log('🔍 Checking if admin exists...')
-    const { data: existingProfile } = await db
+    const { data: existingRecords } = await db
       .from('user_profiles')
       .select('*')
       .eq('email', ADMIN_EMAIL)
-      .single()
+
+    const existingProfile = existingRecords?.[0]
 
     if (existingProfile) {
       console.log('✅ Admin user already exists!')
@@ -105,7 +106,8 @@ VALUES ('<USER_ID_HERE>', '${ADMIN_EMAIL}', 'Admin', 'User', 'ADMIN', true);
         is_active: true,
       })
       .select()
-      .single()
+
+    const profileData = profileResult.data?.[0]
 
     if (profileError) {
       console.error('❌ Profile creation error:', profileError)

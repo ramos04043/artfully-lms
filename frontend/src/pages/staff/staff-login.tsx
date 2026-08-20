@@ -38,11 +38,12 @@ export default function StaffLogin() {
       console.log('🔵 Checking staff role in database...')
       const { db } = await import('@/lib/zendbx')
       
-      const { data: appUsers, error: dbError } = await db
+      const { data: appUserRecords, error: dbError } = await db
         .from('app_users')
         .select('id, role, first_name, last_name, phone')
         .eq('email', email)
-        .single()
+      
+      const appUsers = appUserRecords?.[0]
       
       if (dbError || !appUsers) {
         console.error('❌ Database check error:', dbError)

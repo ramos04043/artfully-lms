@@ -41,11 +41,12 @@ export default function LoginPage() {
       }
 
       // Step 2: Get user profile
-      const { data: profileData, error: profileError } = await db
+      const { data: profileRecords, error: profileError } = await db
         .from('user_profiles')
         .select('*')
         .eq('auth_user_id', authUserId)
-        .single()
+
+      const profileData = profileRecords?.[0]
 
       if (profileError || !profileData) {
         console.error('❌ Profile not found:', profileError)
