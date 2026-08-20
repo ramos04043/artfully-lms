@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
+    RENDER_EXTERNAL_URL: str = ""  # Set this to your Render URL for keep-alive
     
     # Security
     SECRET_KEY: str

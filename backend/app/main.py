@@ -11,6 +11,7 @@ load_dotenv()
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.api.v1.router import api_router
+from app.services.keepalive_service import initialize_keepalive
 
 # Setup logging
 setup_logging()
@@ -40,10 +41,25 @@ async def lifespan(app: FastAPI):
         for warning in validation['warnings']:
             logger.warning(f"  ⚠️  {warning}")
     
+    # Initialize keep-alive service for Render free tier
+    keepalive_service = None
+    if settings.RENDER_EXTERNAL_URL and settings.APP_ENV == "production":
+        logger.info("🚀 Initializing keep-alive service for Render free tier...")
+        keepalive_service = initialize_keepalive(
+            app_url=settings.RENDER_EXTERNAL_URL,
+            ping_interval=600  # Ping every 10 minutes
+        )
+        await keepalive_service.start()
+    else:
+        if settings.APP_ENV == "production":
+            logger.warning("⚠️  RENDER_EXTERNAL_URL not set - keep-alive service disabled")
+    
     # Startup
     yield
     
     # Shutdown
+    if keepalive_service:
+        await keepalive_service.stop()
     logger.info(f"Shutting down {settings.APP_NAME}")
 
 
