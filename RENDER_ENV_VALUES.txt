@@ -4,7 +4,13 @@ BACKEND SERVICE ENVIRONMENT VARIABLES
 
 Copy these into Render Dashboard → Backend Service → Environment Tab
 
-PYTHON_VERSION=3.11.0
+IMPORTANT RENDER SETTINGS:
+- Root Directory: backend
+- Build Command: pip install -r requirements.txt
+- Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+- Health Check Path: /health
+
+PYTHON_VERSION=3.11
 
 # Application
 APP_NAME=Art Studio Management

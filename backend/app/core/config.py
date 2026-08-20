@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:5173"]
-    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
+    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1", "artfully-lms-api.onrender.com", "*.onrender.com"]
     
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod

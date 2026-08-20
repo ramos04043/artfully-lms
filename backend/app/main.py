@@ -66,12 +66,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Trusted Host Middleware
-if not settings.DEBUG:
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=settings.ALLOWED_HOSTS,
-    )
+# Trusted Host Middleware - Disabled for Render deployment
+# Render's infrastructure handles host validation
+# if not settings.DEBUG:
+#     app.add_middleware(
+#         TrustedHostMiddleware,
+#         allowed_hosts=settings.ALLOWED_HOSTS,
+#     )
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
