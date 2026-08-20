@@ -40,6 +40,15 @@ interface Batch {
   end_time: string
 }
 
+interface AvailableBatch {
+  id: string
+  name: string
+  day_of_week: string
+  start_time: string
+  end_time: string
+  programme_id: string
+}
+
 interface AttendanceSummary {
   total_classes: number
   present: number
@@ -53,6 +62,7 @@ export default function StudentDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [student, setStudent] = useState<Student | null>(null)
   const [batches, setBatches] = useState<Batch[]>([])
+  const [allBatches, setAllBatches] = useState<AvailableBatch[]>([])
   const [attendance, setAttendance] = useState<AttendanceSummary | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -65,8 +75,24 @@ export default function StudentDetailsPage() {
   useEffect(() => {
     if (id) {
       loadStudentDetails()
+      loadAllBatches()
     }
   }, [id])
+
+  const loadAllBatches = async () => {
+    try {
+      const { data: batchesData, error: batchesError } = await db
+        .from('batches')
+        .select('id, name, day_of_week, start_time, end_time, programme_id')
+        .eq('is_active', true)
+        .order('day_of_week', { ascending: true })
+
+      if (batchesError) throw batchesError
+      setAllBatches((batchesData || []) as AvailableBatch[])
+    } catch (err: any) {
+      console.error('Error loading batches:', err)
+    }
+  }
 
   const loadStudentDetails = async () => {
     try {
@@ -103,13 +129,22 @@ export default function StudentDetailsPage() {
 
       // Load batches from batch_ids array
       if (studentData.batch_ids && studentData.batch_ids.length > 0) {
-        // Get batch details
-        const { data: batchDetails } = await db
+        // Get batch details - fetch all batches and filter client-side
+        // because .in() filter may not work correctly with the API
+        const { data: allBatchDetails, error: batchError } = await db
           .from('batches')
           .select('id, name, day_of_week, start_time, end_time')
-          .in('id', studentData.batch_ids)
         
-        setBatches((batchDetails || []) as Batch[])
+        if (batchError) {
+          console.error('Error loading batch details:', batchError)
+        }
+        
+        // Filter batches on the client side
+        const studentBatches = (allBatchDetails || []).filter(batch => 
+          studentData.batch_ids.includes(batch.id)
+        )
+        
+        setBatches(studentBatches as Batch[])
       } else {
         setBatches([])
       }
@@ -144,6 +179,7 @@ export default function StudentDetailsPage() {
       setSaving(true)
       setError('')
 
+      // Update basic student info (these fields exist in students table through the view)
       const { error: updateError } = await db
         .from('enrollments')
         .update({
@@ -166,6 +202,90 @@ export default function StudentDetailsPage() {
 
       if (updateError) throw updateError
 
+      // Handle batch changes separately using student_batches table
+      if (student && editData.batch_ids) {
+        const originalBatchIds = student.batch_ids || []
+        const newBatchIds = editData.batch_ids
+        
+        // Find batches to add and remove
+        const batchesToAdd = newBatchIds.filter(bid => !originalBatchIds.includes(bid))
+        const batchesToRemove = originalBatchIds.filter(bid => !newBatchIds.includes(bid))
+        
+        // Get the student's internal UUID from the enrollments record
+        const { data: enrollmentData, error: fetchError } = await db
+          .from('enrollments')
+          .select('*')
+          .eq('id', id)
+        
+        if (fetchError) throw fetchError
+        if (!enrollmentData || enrollmentData.length === 0) throw new Error('Student not found')
+        
+        const enrollmentRecord = enrollmentData[0]
+        
+        // Remove old batches - deactivate them in student_batches
+        if (batchesToRemove.length > 0) {
+          // Deactivate each batch individually since .in() doesn't work
+          for (const batchId of batchesToRemove) {
+            const { error: removeError } = await db
+              .from('student_batches')
+              .update({ is_active: false })
+              .eq('student_id', enrollmentRecord.student_id)
+              .eq('batch_id', batchId)
+            
+            if (removeError) {
+              console.error('Error removing batch:', batchId, removeError)
+            }
+          }
+        }
+        
+        // Add new batches
+        if (batchesToAdd.length > 0) {
+          // First check if these batch records already exist but are inactive
+          const { data: allStudentBatches } = await db
+            .from('student_batches')
+            .select('batch_id')
+            .eq('student_id', enrollmentRecord.student_id)
+          
+          const existingBatchIds = (allStudentBatches || [])
+            .map(b => b.batch_id)
+            .filter(bid => batchesToAdd.includes(bid))
+          
+          const batchesToReactivate = existingBatchIds
+          const batchesToCreate = batchesToAdd.filter(bid => !existingBatchIds.includes(bid))
+          
+          // Reactivate existing records
+          if (batchesToReactivate.length > 0) {
+            for (const batchId of batchesToReactivate) {
+              const { error: reactivateError } = await db
+                .from('student_batches')
+                .update({ is_active: true, effective_from: new Date().toISOString() })
+                .eq('student_id', enrollmentRecord.student_id)
+                .eq('batch_id', batchId)
+              
+              if (reactivateError) {
+                console.error('Error reactivating batch:', batchId, reactivateError)
+              }
+            }
+          }
+          
+          // Create new records
+          if (batchesToCreate.length > 0) {
+            const newBatchRecords = batchesToCreate.map(batchId => ({
+              student_id: enrollmentRecord.student_id,
+              batch_id: batchId,
+              effective_from: new Date().toISOString(),
+              is_active: true
+            }))
+            
+            const { error: addError } = await db
+              .from('student_batches')
+              .insert(newBatchRecords)
+            
+            if (addError) throw addError
+          }
+        }
+      }
+
       setSuccess('Student details updated successfully')
       setIsEditing(false)
       await loadStudentDetails()
@@ -176,6 +296,17 @@ export default function StudentDetailsPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleBatchToggle = (batchId: string) => {
+    const currentBatchIds = editData.batch_ids || []
+    const isSelected = currentBatchIds.includes(batchId)
+    
+    const newBatchIds = isSelected
+      ? currentBatchIds.filter(id => id !== batchId)
+      : [...currentBatchIds, batchId]
+    
+    setEditData({ ...editData, batch_ids: newBatchIds })
   }
 
   const handlePauseResume = async () => {
@@ -701,7 +832,47 @@ export default function StudentDetailsPage() {
               <Clock className="w-5 h-5" />
               Assigned Batches
             </h3>
-            {batches.length === 0 ? (
+            {isEditing ? (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 mb-3">
+                  Select batches for this student
+                </p>
+                {allBatches.length === 0 ? (
+                  <p className="text-sm text-gray-500">No batches available</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {allBatches.map((batch) => {
+                      const isSelected = editData.batch_ids?.includes(batch.id) || false
+                      return (
+                        <label
+                          key={batch.id}
+                          className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-art-indigo bg-art-indigo/5'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleBatchToggle(batch.id)}
+                            className="mt-1 w-4 h-4 text-art-indigo border-gray-300 rounded focus:ring-art-indigo"
+                          />
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900 text-sm">
+                              {batch.name}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {batch.day_of_week} • {batch.start_time} - {batch.end_time}
+                            </p>
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : batches.length === 0 ? (
               <p className="text-sm text-gray-600">No batches assigned</p>
             ) : (
               <div className="space-y-2">
@@ -711,7 +882,7 @@ export default function StudentDetailsPage() {
                     className="p-3 bg-gray-50 rounded-lg border border-gray-200"
                   >
                     <p className="font-medium text-gray-900 text-sm">
-                      {batch.day_of_week}
+                      {batch.name || batch.day_of_week}
                     </p>
                     <p className="text-xs text-gray-600">
                       {batch.start_time} - {batch.end_time}

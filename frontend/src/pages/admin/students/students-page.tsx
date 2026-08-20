@@ -15,17 +15,42 @@ interface Student {
   status: string
   created_at: string
   paused_at: string | null
+  batch_ids: string[]
+}
+
+interface Batch {
+  id: string
+  name: string
+  day_of_week: string
+  start_time: string
+  end_time: string
 }
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([])
+  const [batches, setBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
 
   useEffect(() => {
     loadStudents()
+    loadBatches()
   }, [])
+
+  const loadBatches = async () => {
+    try {
+      const { data, error } = await db
+        .from('batches')
+        .select('id, name, day_of_week, start_time, end_time')
+        .eq('is_active', true)
+
+      if (error) throw error
+      setBatches(data || [])
+    } catch (err: any) {
+      console.error('Error loading batches:', err)
+    }
+  }
 
   const loadStudents = async () => {
     try {
@@ -45,6 +70,11 @@ export default function StudentsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const getStudentBatches = (batchIds: string[]) => {
+    if (!batchIds || batchIds.length === 0) return []
+    return batches.filter(batch => batchIds.includes(batch.id))
   }
 
   const filteredStudents = students.filter((student) => {
@@ -186,7 +216,7 @@ export default function StudentsPage() {
                     Student
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contact
+                    Batch
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -224,20 +254,24 @@ export default function StudentsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        {student.student_email && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Mail className="w-4 h-4" />
-                            {student.student_email}
+                      {(() => {
+                        const studentBatches = getStudentBatches(student.batch_ids || [])
+                        if (studentBatches.length === 0) {
+                          return <span className="text-sm text-gray-400">No batch assigned</span>
+                        }
+                        return (
+                          <div className="space-y-1">
+                            {studentBatches.map((batch) => (
+                              <div key={batch.id} className="text-sm text-gray-900">
+                                <span className="font-medium">{batch.name || batch.day_of_week}</span>
+                                <span className="text-gray-500 text-xs ml-2">
+                                  {batch.start_time} - {batch.end_time}
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                        )}
-                        {student.student_phone && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Phone className="w-4 h-4" />
-                            {student.student_phone}
-                          </div>
-                        )}
-                      </div>
+                        )
+                      })()}
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -259,7 +293,7 @@ export default function StudentsPage() {
                         to={`/admin/students/${student.id}`}
                         className="text-art-indigo hover:text-art-indigo/80 font-medium text-sm"
                       >
-                        View Details ?
+                        Edit
                       </Link>
                     </td>
                   </tr>
