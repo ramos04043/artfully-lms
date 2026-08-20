@@ -10,7 +10,7 @@ router = APIRouter()
 class EnrollmentCreate(BaseModel):
     student_id: str
     student_first_name: str
-    student_last_name: str
+    student_last_name: Optional[str] = ''
     student_date_of_birth: Optional[date] = None
     student_gender: Optional[str] = None
     student_email: Optional[str] = None
@@ -19,8 +19,8 @@ class EnrollmentCreate(BaseModel):
     student_school_name: Optional[str] = None
     student_grade: Optional[str] = None
     parent_first_name: str
-    parent_last_name: str
-    parent_email: str
+    parent_last_name: Optional[str] = ''
+    parent_email: Optional[str] = ''
     parent_phone: str
     parent_relationship: Optional[str] = 'Parent'
     batch_ids: List[str]
