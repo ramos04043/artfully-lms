@@ -60,13 +60,13 @@ export default function AdminDashboard() {
     const dayOfWeek = format(new Date(), 'EEEE').toUpperCase()
 
     // Get today's batches (batches that have classes on this day)
-    const { data: sessions } = await db
-      .from('sessions')
-      .select('batch_id')
+    const { data: batches } = await db
+      .from('batches')
+      .select('id')
       .eq('day_of_week', dayOfWeek)
+      .eq('is_active', true)
 
-    const uniqueBatchIds = new Set(sessions?.map(s => s.batch_id) || [])
-    const todaysBatches = uniqueBatchIds.size
+    const todaysBatches = batches?.length || 0
 
     // Get active students from enrollments
     const { data: enrollments } = await db
@@ -76,11 +76,11 @@ export default function AdminDashboard() {
 
     const activeStudents = enrollments?.length || 0
 
-    // Get total pending payments (sum of all fee collection transactions that are pending)
+    // Get total pending payments (sum of all payments with status PENDING)
     const { data: payments } = await db
       .from('payments')
       .select('amount')
-      .eq('payment_status', 'PENDING')
+      .eq('status', 'PENDING')
 
     const pendingFees = payments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0
 
@@ -105,34 +105,27 @@ export default function AdminDashboard() {
   const loadTodaysClassesOptimized = async () => {
     const dayOfWeek = format(new Date(), 'EEEE').toUpperCase()
 
-    // Get sessions for today
-    const { data: sessions } = await db
-      .from('sessions')
-      .select('id, batch_id, start_time, end_time, day_of_week, class_type, duration_minutes')
+    // Get batches for today with programme info
+    const { data: batches } = await db
+      .from('batches')
+      .select('id, name, programme_id, start_time, end_time, day_of_week')
       .eq('day_of_week', dayOfWeek)
+      .eq('is_active', true)
       .order('start_time', { ascending: true })
 
-    if (!sessions || sessions.length === 0) {
+    if (!batches || batches.length === 0) {
       return []
     }
 
-    // Get batch names
-    const batchIds = [...new Set(sessions.map(s => s.batch_id))]
-    const { data: batches } = await db
-      .from('batches')
-      .select('id, name')
-      .in('id', batchIds)
-
-    const batchMap = new Map(batches?.map(b => [b.id, b.name]) || [])
-
-    const classesWithNames: TodayClass[] = sessions.map(session => ({
-      id: session.id,
-      batch_name: batchMap.get(session.batch_id) || 'Unknown Batch',
-      start_time: session.start_time,
-      end_time: session.end_time,
-      day_of_week: session.day_of_week,
-      class_type: session.class_type,
-      duration_minutes: session.duration_minutes,
+    // Convert batches to today's classes format
+    const classesWithNames: TodayClass[] = batches.map(batch => ({
+      id: batch.id,
+      batch_name: batch.name,
+      start_time: batch.start_time,
+      end_time: batch.end_time,
+      day_of_week: batch.day_of_week,
+      class_type: 'Regular',
+      duration_minutes: 60, // Default duration
     }))
 
     return classesWithNames
@@ -192,7 +185,7 @@ export default function AdminDashboard() {
             <p className="text-xs md:text-sm text-muted-foreground">Attendance Today</p>
           </div>
           <p className="text-2xl md:text-3xl font-bold text-foreground">
-            {stats.attendanceToday > 0 ? `${stats.attendanceToday}%` : 'N/A'}
+            {stats.attendanceToday}%
           </p>
         </div>
       </div>
