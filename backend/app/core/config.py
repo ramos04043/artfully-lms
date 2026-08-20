@@ -1,7 +1,9 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Union
 import os
 import logging
+import json
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -29,8 +31,30 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""  # Optional - only needed if using direct PostgreSQL connection
     
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:5173"]
     ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
+    
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS_ORIGINS from various formats"""
+        if isinstance(v, str):
+            # Try parsing as JSON first
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            
+            # Fall back to comma-separated values
+            return [origin.strip() for origin in v.split(',') if origin.strip()]
+        
+        if isinstance(v, list):
+            return v
+        
+        # Default fallback
+        return ["http://localhost:3000", "http://localhost:5173"]
     
     # Email
     SMTP_HOST: str = "smtp.gmail.com"
