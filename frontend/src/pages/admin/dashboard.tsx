@@ -76,13 +76,13 @@ export default function AdminDashboard() {
 
     const activeStudents = enrollments?.length || 0
 
-    // Get pending fees (fee_due entries with status PENDING)
-    const { data: feeDues } = await db
-      .from('fee_due')
-      .select('amount_due')
-      .eq('status', 'PENDING')
+    // Get total pending payments (sum of all fee collection transactions that are pending)
+    const { data: payments } = await db
+      .from('payments')
+      .select('amount')
+      .eq('payment_status', 'PENDING')
 
-    const pendingFees = feeDues?.reduce((sum, fee) => sum + (fee.amount_due || 0), 0) || 0
+    const pendingFees = payments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0
 
     // Get today's attendance rate
     const { data: todayAttendance } = await db
