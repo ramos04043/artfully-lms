@@ -3,7 +3,7 @@ import { getGreeting } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import { db } from '@/lib/db-api'
 import { format } from 'date-fns'
-import { Calendar, Users, Wallet, TrendingUp, Clock } from 'lucide-react'
+import { Calendar, Users, Wallet, TrendingUp, Clock, X } from 'lucide-react'
 
 interface DashboardStats {
   todaysBatches: number
@@ -22,6 +22,14 @@ interface TodayClass {
   duration_minutes: number
 }
 
+interface BatchStudent {
+  id: string
+  student_id: string
+  student_first_name: string
+  student_last_name: string
+  status: string
+}
+
 export default function AdminDashboard() {
   const { user } = useAuthStore()
   const [stats, setStats] = useState<DashboardStats>({
@@ -32,6 +40,9 @@ export default function AdminDashboard() {
   })
   const [todaysClasses, setTodaysClasses] = useState<TodayClass[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedBatch, setSelectedBatch] = useState<TodayClass | null>(null)
+  const [batchStudents, setBatchStudents] = useState<BatchStudent[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(false)
 
   useEffect(() => {
     loadDashboardData()
@@ -131,6 +142,35 @@ export default function AdminDashboard() {
     return classesWithNames
   }
 
+  const handleBatchClick = async (batch: TodayClass) => {
+    setSelectedBatch(batch)
+    setLoadingStudents(true)
+    setBatchStudents([])
+    
+    try {
+      // Get all enrollments and filter those that include this batch_id
+      const { data: allEnrollments } = await db
+        .from('enrollments')
+        .select('*')
+      
+      // Filter enrollments that have this batch in their batch_ids array
+      const studentsInBatch = (allEnrollments || []).filter(enrollment => 
+        enrollment.batch_ids && enrollment.batch_ids.includes(batch.id)
+      )
+      
+      setBatchStudents(studentsInBatch as BatchStudent[])
+    } catch (err) {
+      console.error('Error loading batch students:', err)
+    } finally {
+      setLoadingStudents(false)
+    }
+  }
+
+  const closeModal = () => {
+    setSelectedBatch(null)
+    setBatchStudents([])
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -207,7 +247,8 @@ export default function AdminDashboard() {
             {todaysClasses.map((cls) => (
               <div
                 key={cls.id}
-                className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-art-indigo transition-colors"
+                onClick={() => handleBatchClick(cls)}
+                className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-art-indigo hover:shadow-md transition-all cursor-pointer"
               >
                 <div className="flex items-start gap-3 mb-2 md:mb-0">
                   <div className="p-2 rounded-lg bg-art-indigo/10">
@@ -227,11 +268,106 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
+                <div className="text-sm text-gray-500">
+                  Click to view students →
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Batch Students Modal */}
+      {selectedBatch && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{selectedBatch.batch_name}</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedBatch.start_time} - {selectedBatch.end_time} • {selectedBatch.duration_minutes} mins
+                </p>
+              </div>
+              <button
+                onClick={closeModal}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto max-h-[calc(80vh-140px)]">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Students in this Batch
+                </h3>
+                <span className="px-3 py-1 bg-art-indigo/10 text-art-indigo rounded-full text-sm font-medium">
+                  {batchStudents.length} {batchStudents.length === 1 ? 'Student' : 'Students'}
+                </span>
+              </div>
+
+              {loadingStudents ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-art-indigo mx-auto mb-3"></div>
+                  <p className="text-gray-600">Loading students...</p>
+                </div>
+              ) : batchStudents.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600">No students assigned to this batch yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {batchStudents.map((student) => (
+                    <div
+                      key={student.id}
+                      className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-art-indigo transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-art-indigo/10 rounded-full flex items-center justify-center">
+                          <span className="text-art-indigo font-semibold text-sm">
+                            {student.student_first_name[0]}
+                            {student.student_last_name[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {student.student_first_name} {student.student_last_name}
+                          </p>
+                          <p className="text-sm text-gray-500">{student.student_id}</p>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          student.status === 'ACTIVE'
+                            ? 'bg-green-100 text-green-800'
+                            : student.status === 'PAUSED'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {student.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={closeModal}
+                className="w-full px-4 py-2 bg-art-indigo hover:bg-art-indigo/90 text-white rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
