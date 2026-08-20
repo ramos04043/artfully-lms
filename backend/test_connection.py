@@ -141,19 +141,27 @@ async def test_specific_tables():
         'Authorization': f'Bearer {service_key}'
     }
     
+    # First, try to list all available tables/views
+    print("\n🔍 Attempting to discover all tables...")
+    
     # Tables to test
     tables = [
         'programmes',
         'batches',
         'sessions',
-        'enrollments',  # View
-        'fee_due',      # View
-        'fee_dues',     # Table
+        'enrollments',
+        'fee_due',
+        'fee_dues',
+        'fees',
+        'payments',
         'attendance',
         'students',
+        'staff',
+        'users',
     ]
     
     async with httpx.AsyncClient() as client:
+        print("\n📋 Testing specific tables:")
         for table in tables:
             try:
                 url = f"{base_url}/{table}"
@@ -171,6 +179,8 @@ async def test_specific_tables():
                     print(f"❌ {table}: Failed ({response.status_code})")
                     if response.status_code == 404:
                         print(f"   → Table/View does not exist in database")
+                    elif response.status_code == 500:
+                        print(f"   → Server error - may be a view issue")
                     
             except Exception as e:
                 print(f"❌ {table}: Error - {str(e)}")
