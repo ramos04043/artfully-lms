@@ -13,7 +13,12 @@ class ZendBXClient:
     def __init__(self):
         self.anon_key = settings.ZENDBX_ANON_KEY
         self.service_key = settings.ZENDBX_SERVICE_KEY
-        self.base_url = f"{settings.ZENDBX_URL}/p/{self._extract_project_slug()}/v1/rest"
+        project_slug = self._extract_project_slug()
+        self.base_url = f"{settings.ZENDBX_URL}/p/{project_slug}/v1/rest"
+        print(f"🔧 ZendBX Client initialized")
+        print(f"   Base URL: {self.base_url}")
+        print(f"   Project Slug: {project_slug}")
+        print(f"   Has Service Key: {bool(self.service_key)}")
         
     def _extract_project_slug(self) -> str:
         """Extract project slug from anon key JWT payload"""
