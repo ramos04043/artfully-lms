@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 # Import endpoint routers
-from app.api.v1.endpoints import attendance, payments, enrollment, expenses, staff, automation, staff_auth_fix
+from app.api.v1.endpoints import attendance, payments, enrollment, expenses, staff, automation, staff_auth_fix, database
 
 api_router = APIRouter()
 
@@ -13,6 +13,7 @@ api_router.include_router(expenses.router, prefix="/expenses", tags=["Expenses"]
 api_router.include_router(staff.router, prefix="/staff", tags=["Staff"])
 api_router.include_router(automation.router, prefix="/automation", tags=["Automation"])
 api_router.include_router(staff_auth_fix.router, prefix="/staff-auth-fix", tags=["Staff Auth Fix"])
+api_router.include_router(database.router, prefix="/db", tags=["Database Proxy"])
 
 # Future endpoints (to be implemented)
 # api_router.include_router(auth.router, prefix="/auth", tags=["auth"])

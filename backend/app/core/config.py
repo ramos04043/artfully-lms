@@ -64,8 +64,10 @@ class Settings(BaseSettings):
             if origin not in origins:
                 origins.append(origin)
         
-        # Note: Vercel preview deployments (*.vercel.app) are handled via allow_origin_regex
-        # Only add specific production Vercel URLs here if needed
+        # Always include production Vercel URL
+        production_url = "https://artfully-lms.vercel.app"
+        if production_url not in origins:
+            origins.append(production_url)
         
         return origins if origins else localhost_origins
     

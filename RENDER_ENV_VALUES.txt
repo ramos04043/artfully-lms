@@ -25,7 +25,8 @@ ZENDBX_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ6ZW5kYngiLCJwcm9
 ZENDBX_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ6ZW5kYngiLCJwcm9qZWN0X2lkIjoiYzUzMThmMTQtNGQ1MS00YjBmLWE3NmItYjk1NTE4YzFkOTMxIiwicHJvamVjdF9zbHVnIjoiYXJ0ZnVsbHktZGF0YWJhc2UiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNzg2ODU4MDQ1fQ.Gj-vYqyICmueNBKIu48RtSuA6jdTiNeRHgu-s28FuHM
 
 # CORS - Supports localhost + Vercel deployments via regex
-# Add specific production URLs here; all *.vercel.app domains are automatically allowed
+# Production URL is auto-added. Add any additional custom URLs here.
+# Format: JSON array or comma-separated
 CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
 
 # Email Configuration
