@@ -107,25 +107,22 @@ export default function EnrollmentPage() {
         throw new Error(errorMsg)
       }
 
-      // For each batch, count enrolled students
+      // For each batch, count enrolled students from student_batches table
       const batchesWithCapacity = await Promise.all(
         (batchData || []).map(async (batch) => {
-          // Get all active enrollments
-          const { data: enrollments, error: enrollError } = await db
-            .from('enrollments')
-            .select('batch_ids')
-            .eq('status', 'ACTIVE')
+          // Count students in this specific batch
+          const { data: studentBatches, error: enrollError } = await db
+            .from('student_batches')
+            .select('id', { count: 'exact', head: true })
+            .eq('batch_id', batch.id)
+            .eq('is_active', true)
 
           if (enrollError) {
             console.error('Enrollment count error:', enrollError)
           }
 
-          // Filter enrollments that include this batch in their batch_ids array
-          const enrollmentsWithThisBatch = (enrollments || []).filter(enrollment => 
-            enrollment.batch_ids && enrollment.batch_ids.includes(batch.id)
-          )
-          
-          const activeCount = enrollmentsWithThisBatch.length
+          // Get the count from the response
+          const activeCount = studentBatches?.length || 0
 
           return {
             ...batch,
