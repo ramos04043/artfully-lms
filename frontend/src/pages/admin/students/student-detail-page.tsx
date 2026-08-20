@@ -156,6 +156,11 @@ export default function StudentDetailsPage() {
           student_address: editData.student_address,
           student_school_name: editData.student_school_name,
           student_grade: editData.student_grade,
+          parent_first_name: editData.parent_first_name,
+          parent_last_name: editData.parent_last_name,
+          parent_relationship: editData.parent_relationship,
+          parent_phone: editData.parent_phone,
+          parent_email: editData.parent_email,
         })
         .eq('id', id)
 
@@ -550,6 +555,85 @@ export default function StudentDetailsPage() {
 
             {!student.parent_first_name && !student.parent_phone ? (
               <p className="text-gray-600">No parent information available</p>
+            ) : isEditing ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.parent_first_name || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, parent_first_name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.parent_last_name || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, parent_last_name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Relationship
+                  </label>
+                  <select
+                    value={editData.parent_relationship || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, parent_relationship: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  >
+                    <option value="">Select</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Father">Father</option>
+                    <option value="Guardian">Guardian</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <Phone className="w-4 h-4" />
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={editData.parent_phone || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, parent_phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editData.parent_email || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, parent_email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                </div>
+              </div>
             ) : (
               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="space-y-3">
