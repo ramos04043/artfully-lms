@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { db } from '@/lib/zendbx'
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/db-api'
 import { TrendingUp, Calendar, DollarSign, PieChart } from 'lucide-react'
 import { format, startOfYear, endOfYear } from 'date-fns'
 
@@ -85,7 +85,7 @@ export default function CapEXPage() {
           <DollarSign className="w-8 h-8" />
           <p className="text-lg opacity-90">Total Yearly CapEx</p>
         </div>
-        <p className="text-4xl font-bold">₹{capex.totalYearly.toLocaleString()}</p>
+        <p className="text-4xl font-bold">?{capex.totalYearly.toLocaleString()}</p>
         <p className="text-sm opacity-75 mt-2">Capital expenses this year</p>
       </div>
 
@@ -110,7 +110,7 @@ export default function CapEXPage() {
                 <div key={index}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">{cat.category}</span>
-                    <span className="text-gray-600">₹{cat.amount.toLocaleString()}</span>
+                    <span className="text-gray-600">?{cat.amount.toLocaleString()}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div

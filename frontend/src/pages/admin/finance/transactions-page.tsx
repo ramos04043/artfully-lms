@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { db } from '@/lib/zendbx'
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/db-api'
 import { DollarSign, TrendingUp, TrendingDown, Filter, Calendar, Search } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -94,7 +94,7 @@ export default function TransactionsPage() {
             <TrendingUp className="w-6 h-6" />
             <p className="text-sm opacity-90">Total Inflow</p>
           </div>
-          <p className="text-3xl font-bold">₹{stats.totalInflow.toLocaleString()}</p>
+          <p className="text-3xl font-bold">?{stats.totalInflow.toLocaleString()}</p>
         </div>
 
         <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-6 text-white">
@@ -102,7 +102,7 @@ export default function TransactionsPage() {
             <TrendingDown className="w-6 h-6" />
             <p className="text-sm opacity-90">Total Outflow</p>
           </div>
-          <p className="text-3xl font-bold">₹{stats.totalOutflow.toLocaleString()}</p>
+          <p className="text-3xl font-bold">?{stats.totalOutflow.toLocaleString()}</p>
         </div>
 
         <div className={`bg-gradient-to-br ${stats.netBalance >= 0 ? 'from-blue-500 to-blue-600' : 'from-orange-500 to-orange-600'} rounded-lg p-6 text-white`}>
@@ -110,7 +110,7 @@ export default function TransactionsPage() {
             <DollarSign className="w-6 h-6" />
             <p className="text-sm opacity-90">Net Balance</p>
           </div>
-          <p className="text-3xl font-bold">₹{Math.abs(stats.netBalance).toLocaleString()}</p>
+          <p className="text-3xl font-bold">?{Math.abs(stats.netBalance).toLocaleString()}</p>
         </div>
       </div>
 
@@ -216,7 +216,7 @@ export default function TransactionsPage() {
                             : 'text-red-600'
                         }`}
                       >
-                        {transaction.transaction_type === 'INFLOW' ? '+' : '-'}₹
+                        {transaction.transaction_type === 'INFLOW' ? '+' : '-'}?
                         {Math.abs(transaction.amount).toLocaleString()}
                       </span>
                     </td>

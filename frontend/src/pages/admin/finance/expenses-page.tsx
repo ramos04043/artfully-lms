@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { db } from '@/lib/zendbx'
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/db-api'
 import { format } from 'date-fns'
 import { 
   Plus, 
@@ -462,7 +462,7 @@ export default function ExpensesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">Total Expenses</p>
-              <p className="text-xl md:text-3xl font-bold text-red-600">₹{stats.total.toFixed(2)}</p>
+              <p className="text-xl md:text-3xl font-bold text-red-600">?{stats.total.toFixed(2)}</p>
             </div>
             <TrendingDown className="w-8 md:w-10 h-8 md:h-10 text-red-400" />
           </div>
@@ -472,7 +472,7 @@ export default function ExpensesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">OPEX</p>
-              <p className="text-lg md:text-2xl font-bold text-blue-600">₹{stats.opex.toFixed(2)}</p>
+              <p className="text-lg md:text-2xl font-bold text-blue-600">?{stats.opex.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -481,7 +481,7 @@ export default function ExpensesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">CAPEX</p>
-              <p className="text-lg md:text-2xl font-bold text-green-600">₹{stats.capex.toFixed(2)}</p>
+              <p className="text-lg md:text-2xl font-bold text-green-600">?{stats.capex.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -490,7 +490,7 @@ export default function ExpensesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">Bank</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-900">₹{stats.bank.toFixed(2)}</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-900">?{stats.bank.toFixed(2)}</p>
             </div>
             <CreditCard className="w-6 md:w-8 h-6 md:h-8 text-blue-400" />
           </div>
@@ -500,7 +500,7 @@ export default function ExpensesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs md:text-sm text-gray-600 mb-1">Cash</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-900">₹{stats.cash.toFixed(2)}</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-900">?{stats.cash.toFixed(2)}</p>
             </div>
             <Banknote className="w-6 md:w-8 h-6 md:h-8 text-green-400" />
           </div>
@@ -674,7 +674,7 @@ export default function ExpensesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="text-sm font-bold text-red-600">
-                          -₹{expense.amount.toFixed(2)}
+                          -?{expense.amount.toFixed(2)}
                         </div>
                       </td>
                     </tr>
@@ -709,13 +709,13 @@ export default function ExpensesPage() {
                       )}
                     </div>
                     <div className="text-right ml-3">
-                      <p className="text-lg font-bold text-red-600">-₹{expense.amount.toFixed(2)}</p>
+                      <p className="text-lg font-bold text-red-600">-?{expense.amount.toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <span>{format(new Date(expense.expense_date), 'MMM dd, yyyy')}</span>
-                      <span>•</span>
+                      <span>�</span>
                       <span>{account?.account_type}</span>
                     </div>
                     <span
@@ -743,7 +743,7 @@ export default function ExpensesPage() {
       {/* Records Count */}
       {filteredExpenses.length > 0 && (
         <div className="mt-4 text-sm text-gray-600 text-center">
-          Showing {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''} • Total: ₹{stats.total.toFixed(2)}
+          Showing {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''} � Total: ?{stats.total.toFixed(2)}
         </div>
       )}
     </div>

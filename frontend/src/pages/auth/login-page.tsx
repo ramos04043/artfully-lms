@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { db } from '@/lib/zendbx'
+import { db } from '@/lib/db-api'
 import { useAuthStore } from '@/stores/auth-store'
 
 export default function LoginPage() {

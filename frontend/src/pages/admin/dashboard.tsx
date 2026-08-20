@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getGreeting } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
-import { db } from '@/lib/zendbx'
+import { db } from '@/lib/db-api'
 import { format } from 'date-fns'
 import { Calendar, Users, Wallet, TrendingUp, Clock } from 'lucide-react'
 

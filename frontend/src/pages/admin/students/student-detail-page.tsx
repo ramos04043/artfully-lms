@@ -1,6 +1,6 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { db } from '@/lib/zendbx'
+import { db } from '@/lib/db-api'
 import { 
   ArrowLeft, Mail, Phone, MapPin, Calendar, 
   School, Edit, Pause, Play, X, Save, AlertCircle, CheckCircle,
@@ -241,7 +241,7 @@ export default function StudentDetailsPage() {
             onClick={() => navigate('/admin/students')}
             className="text-art-indigo hover:text-art-indigo/80 font-medium"
           >
-            ← Back to Students
+            ? Back to Students
           </button>
         </div>
       </div>

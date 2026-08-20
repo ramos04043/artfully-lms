@@ -1,6 +1,6 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { db } from '@/lib/zendbx'
+import { db } from '@/lib/db-api'
 import { ArrowLeft, Users, Clock, CheckCircle, AlertCircle, Save } from 'lucide-react'
 
 interface Programme {
@@ -584,7 +584,7 @@ export default function EnrollmentPage() {
                       if (!batch) return null
                       return (
                         <div key={batchId} className="text-sm text-gray-600">
-                          • {batch.day_of_week} {batch.start_time} - {batch.end_time}
+                          � {batch.day_of_week} {batch.start_time} - {batch.end_time}
                         </div>
                       )
                     })}

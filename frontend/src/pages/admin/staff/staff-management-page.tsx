@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { db } from '@/lib/zendbx'
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/db-api'
 import { 
   Users, 
   Calendar,
@@ -113,7 +113,7 @@ export default function StaffManagementPage() {
         mapping[record.user_id] = record.id
       })
       setUserToStaffMap(mapping)
-      console.log('📋 User to Staff mapping:', mapping)
+      console.log('?? User to Staff mapping:', mapping)
 
       // Load batches
       const { data: batchesData, error: batchError} = await db
@@ -186,7 +186,7 @@ export default function StaffManagementPage() {
       setError('')
       setSuccess('')
 
-      console.log('🔵 Assigning batches via backend API for staff:', selectedStaff.id)
+      console.log('?? Assigning batches via backend API for staff:', selectedStaff.id)
       
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/staff/${selectedStaff.id}/batches`, {
         method: 'POST',
@@ -205,7 +205,7 @@ export default function StaffManagementPage() {
       }
 
       const result = await response.json()
-      console.log('✅ Batches assigned:', result)
+      console.log('? Batches assigned:', result)
 
       setSuccess(`Batches updated for ${selectedStaff.first_name} ${selectedStaff.last_name}`)
       setShowAssignModal(false)
@@ -232,7 +232,7 @@ export default function StaffManagementPage() {
       setError('')
       setSuccess('')
 
-      console.log('🔵 Deleting staff via backend API:', staffToDelete.id)
+      console.log('?? Deleting staff via backend API:', staffToDelete.id)
       
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/staff/${staffToDelete.id}`, {
         method: 'DELETE',
@@ -244,7 +244,7 @@ export default function StaffManagementPage() {
       }
 
       const result = await response.json()
-      console.log('✅ Staff deleted:', result)
+      console.log('? Staff deleted:', result)
 
       setSuccess(`Staff member ${staffToDelete.first_name} ${staffToDelete.last_name} deleted successfully`)
       setShowDeleteModal(false)
@@ -280,7 +280,7 @@ export default function StaffManagementPage() {
       }
 
       // Use backend API to create staff
-      console.log('🔵 Creating staff via backend API:', newStaffForm.email)
+      console.log('?? Creating staff via backend API:', newStaffForm.email)
       
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/staff`, {
         method: 'POST',
@@ -298,13 +298,13 @@ export default function StaffManagementPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: 'Failed to create staff' }))
-        console.error('❌ Backend error:', errorData)
+        console.error('? Backend error:', errorData)
         const errorMessage = errorData.detail || errorData.message || JSON.stringify(errorData)
         throw new Error(errorMessage)
       }
 
       const createdStaff = await response.json()
-      console.log('✅ Staff created successfully:', createdStaff)
+      console.log('? Staff created successfully:', createdStaff)
 
       setSuccess(`Staff member ${newStaffForm.firstName} ${newStaffForm.lastName} added successfully!`)
       setShowAddStaffModal(false)
@@ -599,7 +599,7 @@ export default function StaffManagementPage() {
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{batch.name}</p>
                           <p className="text-sm text-gray-600">
-                            {batch.day_of_week} • {batch.start_time} - {batch.end_time}
+                            {batch.day_of_week} � {batch.start_time} - {batch.end_time}
                           </p>
                         </div>
                       </div>
@@ -715,7 +715,7 @@ export default function StaffManagementPage() {
                     type="password"
                     value={newStaffForm.password}
                     onChange={(e) => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
-                    placeholder="••••••••"
+                    placeholder="��������"
                     minLength={6}
                     required
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-art-indigo focus:border-transparent"

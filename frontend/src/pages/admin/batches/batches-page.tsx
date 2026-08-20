@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { db } from '@/lib/zendbx'
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/db-api'
 import { Users, Clock, Plus, Edit, AlertCircle, X, Save, CheckCircle } from 'lucide-react'
 
 interface Batch {

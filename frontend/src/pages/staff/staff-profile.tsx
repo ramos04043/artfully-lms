@@ -1,6 +1,6 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
-import { db } from '@/lib/zendbx'
+import { db } from '@/lib/db-api'
 import { User, Mail, Phone, Calendar, Users, Clock, Award } from 'lucide-react'
 import { format } from 'date-fns'
 

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import { format } from 'date-fns'
@@ -188,7 +188,7 @@ export default function StaffAttendance() {
           
           <h1 className="text-xl font-bold text-gray-900">{batch?.name || 'Batch'}</h1>
           <p className="text-sm text-gray-600">
-            {batch?.start_time} - {batch?.end_time} • {batch?.programmes?.name}
+            {batch?.start_time} - {batch?.end_time} � {batch?.programmes?.name}
           </p>
           <p className="text-xs text-gray-500 mt-1">{format(new Date(), 'MMMM dd, yyyy')}</p>
         </div>

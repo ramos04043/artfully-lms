@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { db } from '@/lib/zendbx'
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/db-api'
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import {
   TrendingUp,
@@ -133,7 +133,7 @@ export default function StatisticsPage() {
       .from('enrollments')
       .select('id, created_at')
 
-    console.log('📝 Enrollments:', enrollments?.length, 'Error:', enrollError)
+    console.log('?? Enrollments:', enrollments?.length, 'Error:', enrollError)
 
     const activeEnrollmentsCount = enrollments?.length || 0
 
@@ -257,7 +257,7 @@ export default function StatisticsPage() {
 
     if (!batches || !allEnrollments) return []
 
-    console.log('📚 Loading enrollments for', batches.length, 'batches')
+    console.log('?? Loading enrollments for', batches.length, 'batches')
 
     // Process all batches at once instead of querying for each batch
     const batchEnrollments = batches.map(batch => {
@@ -273,7 +273,7 @@ export default function StatisticsPage() {
           capacity: batch.max_capacity || 20,
         }
       } catch (err) {
-        console.error(`❌ Failed to process enrollments for batch ${batch.name}:`, err)
+        console.error(`? Failed to process enrollments for batch ${batch.name}:`, err)
         return {
           name: batch.name,
           students: 0,
@@ -282,7 +282,7 @@ export default function StatisticsPage() {
       }
     })
 
-    console.log('✅ Batch enrollments loaded:', batchEnrollments)
+    console.log('? Batch enrollments loaded:', batchEnrollments)
     return batchEnrollments
   }
 
@@ -291,7 +291,7 @@ export default function StatisticsPage() {
     const monthStart = format(startOfMonth(today), 'yyyy-MM-dd')
     const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd')
 
-    console.log('🔍 Loading expense breakdown for:', monthStart, 'to', monthEnd)
+    console.log('?? Loading expense breakdown for:', monthStart, 'to', monthEnd)
 
     const { data: expenses, error } = await db
       .from('financial_transactions')
@@ -300,11 +300,11 @@ export default function StatisticsPage() {
       .gte('transaction_date', monthStart)
       .lte('transaction_date', monthEnd)
 
-    console.log('💰 Expenses data:', expenses)
-    console.log('❌ Expenses error:', error)
+    console.log('?? Expenses data:', expenses)
+    console.log('? Expenses error:', error)
 
     if (!expenses || expenses.length === 0) {
-      console.log('⚠️ No expenses found for current month')
+      console.log('?? No expenses found for current month')
       setExpenseData([])
       return
     }
@@ -314,10 +314,10 @@ export default function StatisticsPage() {
     expenses.forEach((exp) => {
       const cat = exp.category || 'UNCATEGORIZED'
       categoryMap.set(cat, (categoryMap.get(cat) || 0) + Math.abs(exp.amount))
-      console.log(`  📊 ${cat}: ₹${Math.abs(exp.amount)}`)
+      console.log(`  ?? ${cat}: ?${Math.abs(exp.amount)}`)
     })
 
-    console.log('📈 Category totals:', Object.fromEntries(categoryMap))
+    console.log('?? Category totals:', Object.fromEntries(categoryMap))
 
     const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6']
     const expenseBreakdown = Array.from(categoryMap.entries()).map(([category, amount], index) => ({
@@ -326,7 +326,7 @@ export default function StatisticsPage() {
       color: colors[index % colors.length],
     }))
 
-    console.log('✅ Final expense breakdown:', expenseBreakdown)
+    console.log('? Final expense breakdown:', expenseBreakdown)
     return expenseBreakdown
   }
 
@@ -408,7 +408,7 @@ export default function StatisticsPage() {
             <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
           </div>
           <p className="text-xs md:text-sm opacity-90 mb-1">Monthly Revenue</p>
-          <p className="text-2xl md:text-3xl font-bold">₹{stats.monthlyRevenue.toFixed(0)}</p>
+          <p className="text-2xl md:text-3xl font-bold">?{stats.monthlyRevenue.toFixed(0)}</p>
           <p className="text-xs mt-2 opacity-75">Fee collections</p>
         </div>
 
@@ -419,7 +419,7 @@ export default function StatisticsPage() {
             <TrendingDown className="w-4 h-4 md:w-5 md:h-5" />
           </div>
           <p className="text-xs md:text-sm opacity-90 mb-1">Monthly Expenses</p>
-          <p className="text-2xl md:text-3xl font-bold">₹{stats.monthlyExpenses.toFixed(0)}</p>
+          <p className="text-2xl md:text-3xl font-bold">?{stats.monthlyExpenses.toFixed(0)}</p>
           <p className="text-xs mt-2 opacity-75">All categories</p>
         </div>
 
@@ -439,7 +439,7 @@ export default function StatisticsPage() {
           </div>
           <p className="text-xs md:text-sm opacity-90 mb-1">Net Income</p>
           <p className="text-2xl md:text-3xl font-bold">
-            ₹{Math.abs(stats.netIncome).toFixed(0)}
+            ?{Math.abs(stats.netIncome).toFixed(0)}
           </p>
           <p className="text-xs mt-2 opacity-75">{stats.netIncome >= 0 ? 'Profit' : 'Loss'}</p>
         </div>
@@ -514,7 +514,7 @@ export default function StatisticsPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value: number) => `₹${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: number) => `?${value.toFixed(2)}`} />
                 <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} name="Revenue" />
                 <Line type="monotone" dataKey="expenses" stroke="#f59e0b" strokeWidth={2} name="Expenses" />
@@ -581,7 +581,7 @@ export default function StatisticsPage() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `₹${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: number) => `?${value.toFixed(2)}`} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

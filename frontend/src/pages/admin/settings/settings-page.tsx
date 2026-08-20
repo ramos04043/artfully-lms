@@ -1,7 +1,7 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Settings as SettingsIcon, Save, Building2, Mail, Phone, MapPin, Globe, User, RefreshCw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { db } from '@/lib/zendbx'
+import { db } from '@/lib/db-api'
 
 export default function SettingsPage() {
   const { toast } = useToast()

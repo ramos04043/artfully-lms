@@ -1,6 +1,6 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { db } from '@/lib/zendbx'
+import { db } from '@/lib/db-api'
 import { Search, Plus, UserCircle, Phone, Mail, Calendar, Filter } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -259,7 +259,7 @@ export default function StudentsPage() {
                         to={`/admin/students/${student.id}`}
                         className="text-art-indigo hover:text-art-indigo/80 font-medium text-sm"
                       >
-                        View Details →
+                        View Details ?
                       </Link>
                     </td>
                   </tr>

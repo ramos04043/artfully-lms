@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { db } from '@/lib/zendbx'
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/db-api'
 import { format, startOfMonth, endOfMonth, subDays } from 'date-fns'
 import { 
   Calendar, 
@@ -534,7 +534,7 @@ export default function AttendancePage() {
                         <div className="text-sm">
                           <div className="font-medium text-gray-900">{batch?.name || 'Unknown'}</div>
                           <div className="text-xs text-gray-500">
-                            {batch?.day_of_week} • {batch?.start_time}-{batch?.end_time}
+                            {batch?.day_of_week} � {batch?.start_time}-{batch?.end_time}
                           </div>
                         </div>
                       </td>
