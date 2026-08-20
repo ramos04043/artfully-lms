@@ -73,12 +73,13 @@ export default function StudentDetailsPage() {
       setLoading(true)
       setError('')
 
-      // Load student from enrollments table - use .maybeSingle() to avoid error on not found
-      const { data: studentData, error: studentError } = await db
+      // Load student from enrollments table
+      const { data: studentRecords, error: studentError } = await db
         .from('enrollments')
         .select('*')
         .eq('id', id)
-        .maybeSingle()
+
+      const studentData = studentRecords?.[0]
 
       // Handle student not found without logging as error
       if (studentError) {
