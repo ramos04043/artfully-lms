@@ -101,15 +101,25 @@ class ZendBXClient:
         if limit:
             params['limit'] = limit
         
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                url,
-                params=params,
-                headers=self._get_headers(use_service_key=True),
-                timeout=30.0
-            )
-            response.raise_for_status()
-            return response.json()
+        try:
+            async with httpx.AsyncClient() as client:
+                print(f"🔍 Querying ZendBX: {url} with params: {params}")
+                response = await client.get(
+                    url,
+                    params=params,
+                    headers=self._get_headers(use_service_key=True),
+                    timeout=30.0
+                )
+                
+                # Log response for debugging
+                if response.status_code >= 400:
+                    print(f"❌ ZendBX Error {response.status_code}: {response.text}")
+                    
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"❌ ZendBX select error for table '{table}': {str(e)}")
+            raise
     
     async def insert(
         self,
