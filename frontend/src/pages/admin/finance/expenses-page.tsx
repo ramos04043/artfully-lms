@@ -11,7 +11,11 @@ import {
   CheckCircle, 
   XCircle,
   Receipt,
-  TrendingDown
+  TrendingDown,
+  Edit,
+  Save,
+  X,
+  Trash2
 } from 'lucide-react'
 
 interface Expense {
@@ -54,6 +58,10 @@ export default function ExpensesPage() {
   const [vendorName, setVendorName] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Edit state
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null)
+  const [editData, setEditData] = useState<Partial<Expense>>({})
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -230,6 +238,82 @@ export default function ExpensesPage() {
     } catch (err: any) {
       console.error('Error adding expense:', err)
       setError(err.message || 'Failed to add expense')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const startEdit = (expense: Expense) => {
+    setEditingExpenseId(expense.id)
+    setEditData({
+      category: expense.category,
+      amount: expense.amount,
+      expense_date: expense.expense_date,
+      vendor_name: expense.vendor_name,
+      description: expense.description,
+      payment_mode: expense.payment_mode,
+    })
+  }
+
+  const cancelEdit = () => {
+    setEditingExpenseId(null)
+    setEditData({})
+  }
+
+  const handleSaveEdit = async (expenseId: string) => {
+    try {
+      setSaving(true)
+      setError('')
+
+      const { error: updateError } = await db
+        .from('expenses')
+        .update({
+          category: editData.category,
+          amount: editData.amount,
+          expense_date: editData.expense_date,
+          vendor_name: editData.vendor_name,
+          description: editData.description,
+          payment_mode: editData.payment_mode,
+        })
+        .eq('id', expenseId)
+
+      if (updateError) throw updateError
+
+      setSuccess('Expense updated successfully!')
+      setEditingExpenseId(null)
+      setEditData({})
+      await loadData()
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err: any) {
+      console.error('Error updating expense:', err)
+      setError(err.message || 'Failed to update expense')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    if (!confirm('Are you sure you want to delete this expense?')) {
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError('')
+
+      const { error: deleteError } = await db
+        .from('expenses')
+        .delete()
+        .eq('id', expenseId)
+
+      if (deleteError) throw deleteError
+
+      setSuccess('Expense deleted successfully!')
+      await loadData()
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err: any) {
+      console.error('Error deleting expense:', err)
+      setError(err.message || 'Failed to delete expense')
     } finally {
       setSaving(false)
     }
@@ -615,12 +699,15 @@ export default function ExpensesPage() {
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount
                 </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="text-gray-400">
                       <Receipt className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p className="text-lg font-medium">No expenses found</p>
@@ -631,51 +718,151 @@ export default function ExpensesPage() {
               ) : (
                 filteredExpenses.map((expense) => {
                   const account = getAccountInfo(expense.account_id)
+                  const isEditing = editingExpenseId === expense.id
 
                   return (
                     <tr key={expense.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {format(new Date(expense.expense_date), 'MMM dd, yyyy')}
-                        </div>
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            value={editData.expense_date || ''}
+                            onChange={(e) => setEditData({ ...editData, expense_date: e.target.value })}
+                            className="text-sm px-2 py-1 border rounded"
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-900">
+                            {format(new Date(expense.expense_date), 'MMM dd, yyyy')}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          {expense.category}
-                        </span>
+                        {isEditing ? (
+                          <select
+                            value={editData.category || ''}
+                            onChange={(e) => setEditData({ ...editData, category: e.target.value })}
+                            className="text-sm px-2 py-1 border rounded"
+                          >
+                            {expenseCategories.map((cat) => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            {expense.category}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{expense.vendor_name || '-'}</div>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editData.vendor_name || ''}
+                            onChange={(e) => setEditData({ ...editData, vendor_name: e.target.value })}
+                            className="text-sm px-2 py-1 border rounded w-full"
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-900">{expense.vendor_name || '-'}</div>
+                        )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-md truncate">
-                          {expense.description}
-                        </div>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editData.description || ''}
+                            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                            className="text-sm px-2 py-1 border rounded w-full"
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-900 max-w-md truncate">
+                            {expense.description}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{account?.account_type || '-'}</div>
                         <div className="text-xs text-gray-500">{account?.account_mode}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                            expense.payment_mode === 'BANK'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {expense.payment_mode === 'BANK' ? (
-                            <CreditCard className="w-3 h-3" />
-                          ) : (
-                            <Banknote className="w-3 h-3" />
-                          )}
-                          {expense.payment_mode}
-                        </span>
+                        {isEditing ? (
+                          <select
+                            value={editData.payment_mode || ''}
+                            onChange={(e) => setEditData({ ...editData, payment_mode: e.target.value })}
+                            className="text-sm px-2 py-1 border rounded"
+                          >
+                            <option value="BANK">BANK</option>
+                            <option value="CASH">CASH</option>
+                          </select>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                              expense.payment_mode === 'BANK'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {expense.payment_mode === 'BANK' ? (
+                              <CreditCard className="w-3 h-3" />
+                            ) : (
+                              <Banknote className="w-3 h-3" />
+                            )}
+                            {expense.payment_mode}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="text-sm font-bold text-red-600">
-                          -₹{expense.amount.toFixed(2)}
-                        </div>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editData.amount || ''}
+                            onChange={(e) => setEditData({ ...editData, amount: parseFloat(e.target.value) })}
+                            className="text-sm px-2 py-1 border rounded w-24 text-right"
+                            step="0.01"
+                          />
+                        ) : (
+                          <div className="text-sm font-bold text-red-600">
+                            -₹{expense.amount.toFixed(2)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {isEditing ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleSaveEdit(expense.id)}
+                              disabled={saving}
+                              className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                              title="Save"
+                            >
+                              <Save className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="text-gray-600 hover:text-gray-800"
+                              title="Cancel"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => startEdit(expense)}
+                              className="text-art-indigo hover:text-art-indigo/80"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              disabled={saving}
+                              className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )
