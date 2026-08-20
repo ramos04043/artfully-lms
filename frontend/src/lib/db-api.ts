@@ -14,6 +14,8 @@ class QueryBuilder<T = any> {
   private filterParams: Record<string, string> = {}
   private orderParam?: string
   private limitParam?: number
+  private updateData?: Record<string, any>
+  private isDelete = false
 
   constructor(table: string, baseURL: string) {
     this.tableName = table
@@ -102,8 +104,58 @@ class QueryBuilder<T = any> {
     return query ? `?${query}` : ''
   }
 
+  // For update operations - returns this for chaining
+  update(data: Record<string, any>): this {
+    this.updateData = data
+    return this
+  }
+
+  // For delete operations - sets delete flag and returns this for chaining
+  delete(): this {
+    this.isDelete = true
+    return this
+  }
+
   async execute(): Promise<{ data: T[] | null; error: any }> {
     try {
+      // Handle delete operations
+      if (this.isDelete) {
+        const response = await fetch(
+          `${this.baseURL}/${this.tableName}?filters=${encodeURIComponent(JSON.stringify(this.filterParams))}`,
+          {
+            method: 'DELETE'
+          }
+        )
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          return { data: null, error: new Error(errorText || response.statusText) }
+        }
+        
+        return { data: null, error: null }
+      }
+
+      // Handle update operations
+      if (this.updateData) {
+        const response = await fetch(
+          `${this.baseURL}/${this.tableName}?filters=${encodeURIComponent(JSON.stringify(this.filterParams))}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.updateData)
+          }
+        )
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          return { data: null, error: new Error(errorText || response.statusText) }
+        }
+        
+        const result = await response.json()
+        return { data: result, error: null }
+      }
+
+      // Handle select operations
       const queryString = this.buildQueryString()
       const response = await fetch(`${this.baseURL}/${this.tableName}${queryString}`)
       
@@ -148,50 +200,6 @@ class QueryBuilder<T = any> {
     }
   }
 
-  // For update operations
-  async update(data: Record<string, any>): Promise<{ data: T[] | null; error: any }> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/${this.tableName}?filters=${encodeURIComponent(JSON.stringify(this.filterParams))}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        }
-      )
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        return { data: null, error: new Error(errorText || response.statusText) }
-      }
-      
-      const result = await response.json()
-      return { data: result, error: null }
-    } catch (error) {
-      return { data: null, error }
-    }
-  }
-
-  // For delete operations
-  async delete(): Promise<{ data: null; error: any }> {
-    try {
-      const response = await fetch(
-        `${this.baseURL}/${this.tableName}?filters=${encodeURIComponent(JSON.stringify(this.filterParams))}`,
-        {
-          method: 'DELETE'
-        }
-      )
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        return { data: null, error: new Error(errorText || response.statusText) }
-      }
-      
-      return { data: null, error: null }
-    } catch (error) {
-      return { data: null, error }
-    }
-  }
 }
 
 // ZendBX-compatible database client
