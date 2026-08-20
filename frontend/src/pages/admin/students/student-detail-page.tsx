@@ -10,7 +10,7 @@ import { format } from 'date-fns'
 
 interface Student {
   id: string
-  student_id: string
+  student_id: string  // This is the string like "STU18365652" from enrollments view
   student_first_name: string
   student_last_name: string
   student_date_of_birth: string | null
@@ -99,7 +99,7 @@ export default function StudentDetailsPage() {
       setLoading(true)
       setError('')
 
-      // Load student from enrollments table
+      // Load student from enrollments view
       const { data: studentRecords, error: studentError } = await db
         .from('enrollments')
         .select('*')
@@ -109,7 +109,6 @@ export default function StudentDetailsPage() {
 
       // Handle student not found without logging as error
       if (studentError) {
-        // Only log actual errors, not "not found"
         if (studentError.status !== 404 && studentError.message !== 'No rows found') {
           console.error('Error loading student details:', studentError)
         }
@@ -124,6 +123,12 @@ export default function StudentDetailsPage() {
         return
       }
 
+      console.log('Loaded student data from enrollments:', studentData)
+
+      // The enrollments view should have all the fields we need
+      // student_id might be the string ID, so we'll need to get the UUID separately
+      // for batch operations
+      
       setStudent(studentData as Student)
       setEditData(studentData as Student)
 
@@ -149,7 +154,7 @@ export default function StudentDetailsPage() {
         setBatches([])
       }
 
-      // Load attendance summary using student_id
+      // Load attendance summary using student_id (the string like "STU18365652")
       const { data: attendanceData } = await db
         .from('attendance')
         .select('status')
@@ -202,87 +207,31 @@ export default function StudentDetailsPage() {
 
       if (updateError) throw updateError
 
-      // Handle batch changes separately using student_batches table
+      // Handle batch changes by updating the batch_ids array in enrollments table
+      // The enrollments table stores batch_ids as an array, so we just update that directly
       if (student && editData.batch_ids) {
         const originalBatchIds = student.batch_ids || []
         const newBatchIds = editData.batch_ids
         
-        // Find batches to add and remove
-        const batchesToAdd = newBatchIds.filter(bid => !originalBatchIds.includes(bid))
-        const batchesToRemove = originalBatchIds.filter(bid => !newBatchIds.includes(bid))
+        // Check if batches have changed
+        const batchesChanged = JSON.stringify(originalBatchIds.sort()) !== JSON.stringify(newBatchIds.sort())
         
-        // Get the student's internal UUID from the enrollments record
-        const { data: enrollmentData, error: fetchError } = await db
-          .from('enrollments')
-          .select('*')
-          .eq('id', id)
-        
-        if (fetchError) throw fetchError
-        if (!enrollmentData || enrollmentData.length === 0) throw new Error('Student not found')
-        
-        const enrollmentRecord = enrollmentData[0]
-        
-        // Remove old batches - deactivate them in student_batches
-        if (batchesToRemove.length > 0) {
-          // Deactivate each batch individually since .in() doesn't work
-          for (const batchId of batchesToRemove) {
-            const { error: removeError } = await db
-              .from('student_batches')
-              .update({ is_active: false })
-              .eq('student_id', enrollmentRecord.student_id)
-              .eq('batch_id', batchId)
-            
-            if (removeError) {
-              console.error('Error removing batch:', batchId, removeError)
-            }
-          }
-        }
-        
-        // Add new batches
-        if (batchesToAdd.length > 0) {
-          // First check if these batch records already exist but are inactive
-          const { data: allStudentBatches } = await db
-            .from('student_batches')
-            .select('batch_id')
-            .eq('student_id', enrollmentRecord.student_id)
+        if (batchesChanged) {
+          console.log('Updating batch_ids from:', originalBatchIds, 'to:', newBatchIds)
           
-          const existingBatchIds = (allStudentBatches || [])
-            .map(b => b.batch_id)
-            .filter(bid => batchesToAdd.includes(bid))
+          // Update the batch_ids array in enrollments table
+          const { error: batchUpdateError } = await db
+            .from('enrollments')
+            .update({ batch_ids: newBatchIds })
+            .eq('id', id)
+            .execute()
           
-          const batchesToReactivate = existingBatchIds
-          const batchesToCreate = batchesToAdd.filter(bid => !existingBatchIds.includes(bid))
-          
-          // Reactivate existing records
-          if (batchesToReactivate.length > 0) {
-            for (const batchId of batchesToReactivate) {
-              const { error: reactivateError } = await db
-                .from('student_batches')
-                .update({ is_active: true, effective_from: new Date().toISOString() })
-                .eq('student_id', enrollmentRecord.student_id)
-                .eq('batch_id', batchId)
-              
-              if (reactivateError) {
-                console.error('Error reactivating batch:', batchId, reactivateError)
-              }
-            }
+          if (batchUpdateError) {
+            console.error('Error updating batches:', batchUpdateError)
+            throw new Error(`Failed to update batches: ${batchUpdateError.message || batchUpdateError}`)
           }
           
-          // Create new records
-          if (batchesToCreate.length > 0) {
-            const newBatchRecords = batchesToCreate.map(batchId => ({
-              student_id: enrollmentRecord.student_id,
-              batch_id: batchId,
-              effective_from: new Date().toISOString(),
-              is_active: true
-            }))
-            
-            const { error: addError } = await db
-              .from('student_batches')
-              .insert(newBatchRecords)
-            
-            if (addError) throw addError
-          }
+          console.log('Successfully updated batch_ids')
         }
       }
 
