@@ -37,24 +37,35 @@ class Settings(BaseSettings):
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod
     def parse_cors_origins(cls, v):
-        """Parse CORS_ORIGINS from various formats"""
+        """Parse CORS_ORIGINS from various formats and add common deployment URLs"""
+        origins = []
+        
         if isinstance(v, str):
             # Try parsing as JSON first
             try:
                 parsed = json.loads(v)
                 if isinstance(parsed, list):
-                    return parsed
+                    origins = parsed
             except json.JSONDecodeError:
-                pass
-            
-            # Fall back to comma-separated values
-            return [origin.strip() for origin in v.split(',') if origin.strip()]
+                # Fall back to comma-separated values
+                origins = [origin.strip() for origin in v.split(',') if origin.strip()]
+        elif isinstance(v, list):
+            origins = v
+        else:
+            # Default fallback
+            origins = ["http://localhost:3000", "http://localhost:5173"]
         
-        if isinstance(v, list):
-            return v
+        # Always add common deployment domains if not present
+        common_domains = [
+            "https://artfully-lms.vercel.app",
+            "https://artfully-lms-frontend.onrender.com"
+        ]
         
-        # Default fallback
-        return ["http://localhost:3000", "http://localhost:5173"]
+        for domain in common_domains:
+            if domain not in origins:
+                origins.append(domain)
+        
+        return origins
     
     # Email
     SMTP_HOST: str = "smtp.gmail.com"
