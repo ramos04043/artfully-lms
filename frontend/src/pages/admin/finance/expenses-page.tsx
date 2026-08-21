@@ -48,6 +48,9 @@ export default function ExpensesPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  // Get API URL from environment
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
   // Add Expense Form
   const [showAddForm, setShowAddForm] = useState(false)
   const [accountType, setAccountType] = useState<'OPEX' | 'CAPEX'>('OPEX')
@@ -152,7 +155,7 @@ export default function ExpensesPage() {
       const newBalance = account.current_balance - amountNum
 
       // Step 1: Create financial transaction (EXPENSE type)
-      const transactionResponse = await fetch('http://localhost:8000/api/expenses/transactions', {
+      const transactionResponse = await fetch(`${API_URL}/api/expenses/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +181,7 @@ export default function ExpensesPage() {
       const transactionId = transactionData[0]?.id
 
       // Step 2: Create expense record
-      const expenseResponse = await fetch('http://localhost:8000/api/expenses/expenses', {
+      const expenseResponse = await fetch(`${API_URL}/api/expenses/expenses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +206,7 @@ export default function ExpensesPage() {
       }
 
       // Step 3: Update account balance
-      const balanceResponse = await fetch('http://localhost:8000/api/expenses/accounts/balance', {
+      const balanceResponse = await fetch(`${API_URL}/api/expenses/accounts/balance`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
