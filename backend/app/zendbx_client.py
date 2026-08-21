@@ -189,8 +189,37 @@ class ZendBXClient:
         url = f"{self.base_url}/{table}"
         params = {}
         
+        # Handle filter operators (same as select method)
         for key, value in filters.items():
-            params[key] = f"eq.{value}"
+            if key.endswith('_gte'):
+                column = key[:-4]
+                params[column] = f"gte.{value}"
+            elif key.endswith('_gt'):
+                column = key[:-3]
+                params[column] = f"gt.{value}"
+            elif key.endswith('_lte'):
+                column = key[:-4]
+                params[column] = f"lte.{value}"
+            elif key.endswith('_lt'):
+                column = key[:-3]
+                params[column] = f"lt.{value}"
+            elif key.endswith('_neq'):
+                column = key[:-4]
+                params[column] = f"neq.{value}"
+            elif key.endswith('_like'):
+                column = key[:-5]
+                params[column] = f"like.{value}"
+            elif key.endswith('_ilike'):
+                column = key[:-6]
+                params[column] = f"ilike.{value}"
+            elif key.endswith('_in'):
+                column = key[:-3]
+                params[column] = f"in.({value})"
+            else:
+                # Default to eq operator
+                params[key] = f"eq.{value}"
+        
+        print(f"🔄 Updating {table} with filters: {filters} -> params: {params}")
         
         async with httpx.AsyncClient() as client:
             response = await client.patch(
@@ -203,6 +232,11 @@ class ZendBXClient:
                 },
                 timeout=30.0
             )
+            
+            # Log response for debugging
+            if response.status_code >= 400:
+                print(f"❌ ZendBX Update Error {response.status_code}: {response.text}")
+                
             response.raise_for_status()
             return response.json()
     

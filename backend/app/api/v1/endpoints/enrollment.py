@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
 import httpx
 import os
 
@@ -25,6 +25,11 @@ class EnrollmentCreate(BaseModel):
     parent_relationship: Optional[str] = 'Parent'
     batch_ids: List[str]
     status: str = 'ACTIVE'
+
+
+class EnrollmentStatusUpdate(BaseModel):
+    status: str
+    paused_reason: Optional[str] = None
 
 
 @router.post("/enrollments")
@@ -65,3 +70,59 @@ async def create_enrollment(enrollment: EnrollmentCreate):
             raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/enrollments/{enrollment_id}/status")
+async def update_enrollment_status(enrollment_id: str, status_update: EnrollmentStatusUpdate):
+    """
+    Update enrollment status (pause/resume student)
+    
+    The enrollments table only has a 'status' column, not paused_at or paused_reason
+    """
+    import httpx
+    
+    zendbx_url = os.getenv('ZENDBX_URL', 'https://api.zendbx.in')
+    zendbx_key = os.getenv('ZENDBX_SERVICE_KEY')
+    project_slug = 'artfully-database'
+    
+    if not zendbx_key:
+        raise HTTPException(status_code=500, detail="ZendBX service key not configured")
+    
+    try:
+        # Only update status - enrollments table doesn't have paused_at or paused_reason
+        update_data = {
+            'status': status_update.status
+        }
+        
+        url = f"{zendbx_url}/p/{project_slug}/v1/rest/enrollments?id=eq.{enrollment_id}"
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'apikey': zendbx_key,
+            'Authorization': f'Bearer {zendbx_key}',
+            'Prefer': 'return=representation'
+        }
+        
+        print(f"Updating enrollment {enrollment_id} status to: {status_update.status}")
+        print(f"URL: {url}")
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(url, json=update_data, headers=headers, timeout=30.0)
+            
+            print(f"Response status: {response.status_code}")
+            print(f"Response body: {response.text}")
+            
+            if response.status_code >= 400:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"ZendBX error: {response.text}"
+                )
+            
+            result = response.json() if response.text else []
+            return {"success": True, "data": result}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating enrollment status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

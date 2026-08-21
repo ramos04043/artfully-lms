@@ -266,23 +266,35 @@ export default function StudentDetailsPage() {
       const isPaused = student.status === 'PAUSED'
       const newStatus = isPaused ? 'ACTIVE' : 'PAUSED'
 
-      const { error: updateError } = await db
-        .from('enrollments')
-        .update({
+      console.log(`Updating enrollment ${id} status from ${student.status} to ${newStatus}`)
+
+      // Call the backend API endpoint for status update
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${API_URL}/api/enrollment/enrollments/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           status: newStatus,
-          paused_at: isPaused ? null : new Date().toISOString(),
-          paused_reason: isPaused ? null : 'Paused by admin',
+          paused_reason: isPaused ? null : 'Paused by admin'
         })
-        .eq('id', id)
+      })
 
-      if (updateError) throw updateError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || `HTTP ${response.status}`)
+      }
 
-      setSuccess(isPaused ? 'Student resumed' : 'Student paused')
+      const result = await response.json()
+      console.log('Status update result:', result)
+
+      setSuccess(isPaused ? 'Student resumed successfully' : 'Student paused successfully')
       await loadStudentDetails()
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
       console.error('Error pausing/resuming student:', err)
-      setError(err.message)
+      setError(err.message || 'Failed to update student status')
     } finally {
       setSaving(false)
     }
