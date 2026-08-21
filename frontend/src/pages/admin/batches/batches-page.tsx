@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { db } from '@/lib/db-api'
 import { Users, Clock, Plus, Edit, AlertCircle, X, Save, CheckCircle, Search } from 'lucide-react'
 import { format } from 'date-fns'
+import ConfirmationDialog from '@/components/ui/confirmation-dialog'
 
 interface Batch {
   id: string
@@ -45,6 +46,15 @@ export default function BatchesPage() {
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [allBatches, setAllBatches] = useState<Batch[]>([])
   const [reassigningStudent, setReassigningStudent] = useState<string | null>(null)
+  
+  // Confirmation dialog state
+  const [showAssignConfirm, setShowAssignConfirm] = useState(false)
+  const [showReassignConfirm, setShowReassignConfirm] = useState(false)
+  const [pendingAssignment, setPendingAssignment] = useState<{
+    enrollmentId: string
+    student: BatchStudent
+    batchId: string
+  } | null>(null)
   
   // Removed add student functionality - use student detail page for batch assignment
 
@@ -172,6 +182,7 @@ export default function BatchesPage() {
 
   const handleAssignStudent = async (studentEnrollmentId: string, student: BatchStudent, newBatchId: string) => {
     setReassigningStudent(studentEnrollmentId)
+    setShowAssignConfirm(false)
     try {
       // Find the target batch
       const targetBatch = allBatches.find(b => b.id === newBatchId)
@@ -227,13 +238,20 @@ export default function BatchesPage() {
       setTimeout(() => setError(''), 5000)
     } finally {
       setReassigningStudent(null)
+      setPendingAssignment(null)
     }
+  }
+
+  const confirmAssignStudent = (studentEnrollmentId: string, student: BatchStudent, newBatchId: string) => {
+    setPendingAssignment({ enrollmentId: studentEnrollmentId, student, batchId: newBatchId })
+    setShowAssignConfirm(true)
   }
 
   const handleReassignStudent = async (studentEnrollmentId: string, student: BatchStudent, newBatchId: string) => {
     if (!selectedBatch) return
     
     setReassigningStudent(studentEnrollmentId)
+    setShowReassignConfirm(false)
     try {
       // Prevent reassigning to the same batch
       if (selectedBatch.id === newBatchId) {
@@ -295,7 +313,13 @@ export default function BatchesPage() {
       setTimeout(() => setError(''), 5000)
     } finally {
       setReassigningStudent(null)
+      setPendingAssignment(null)
     }
+  }
+
+  const confirmReassignStudent = (studentEnrollmentId: string, student: BatchStudent, newBatchId: string) => {
+    setPendingAssignment({ enrollmentId: studentEnrollmentId, student, batchId: newBatchId })
+    setShowReassignConfirm(true)
   }
 
   const closeStudentModal = () => {
@@ -830,9 +854,9 @@ VALUES ('${batchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'::tim
                               if (newBatchId && newBatchId !== currentBatchId) {
                                 // If student has a batch, change it. If not, assign new batch
                                 if (currentBatchId) {
-                                  handleReassignStudent(student.id, student, newBatchId)
+                                  confirmReassignStudent(student.id, student, newBatchId)
                                 } else {
-                                  handleAssignStudent(student.id, student, newBatchId)
+                                  confirmAssignStudent(student.id, student, newBatchId)
                                 }
                               }
                             }}
@@ -888,6 +912,59 @@ VALUES ('${batchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'::tim
           </div>
         </div>
       )}
+      
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={showAssignConfirm}
+        onClose={() => {
+          setShowAssignConfirm(false)
+          setPendingAssignment(null)
+        }}
+        onConfirm={() => {
+          if (pendingAssignment) {
+            handleAssignStudent(
+              pendingAssignment.enrollmentId,
+              pendingAssignment.student,
+              pendingAssignment.batchId
+            )
+          }
+        }}
+        title="Assign Student to Batch?"
+        message={
+          pendingAssignment
+            ? `Are you sure you want to assign ${pendingAssignment.student.student_first_name} ${pendingAssignment.student.student_last_name} to ${allBatches.find(b => b.id === pendingAssignment.batchId)?.name}?`
+            : ''
+        }
+        confirmText="Assign"
+        variant="info"
+        loading={reassigningStudent === pendingAssignment?.enrollmentId}
+      />
+      
+      <ConfirmationDialog
+        isOpen={showReassignConfirm}
+        onClose={() => {
+          setShowReassignConfirm(false)
+          setPendingAssignment(null)
+        }}
+        onConfirm={() => {
+          if (pendingAssignment) {
+            handleReassignStudent(
+              pendingAssignment.enrollmentId,
+              pendingAssignment.student,
+              pendingAssignment.batchId
+            )
+          }
+        }}
+        title="Change Student Batch?"
+        message={
+          pendingAssignment && selectedBatch
+            ? `Are you sure you want to move ${pendingAssignment.student.student_first_name} ${pendingAssignment.student.student_last_name} from ${selectedBatch.name} to ${allBatches.find(b => b.id === pendingAssignment.batchId)?.name}?`
+            : ''
+        }
+        confirmText="Change Batch"
+        variant="warning"
+        loading={reassigningStudent === pendingAssignment?.enrollmentId}
+      />
     </div>
   )
 }

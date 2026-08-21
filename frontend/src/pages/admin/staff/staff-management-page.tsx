@@ -13,6 +13,7 @@ import {
   Shield
 } from 'lucide-react'
 import StaffAuthSetup from './staff-auth-setup'
+import ConfirmationDialog from '@/components/ui/confirmation-dialog'
 
 interface StaffMember {
   id: string
@@ -58,7 +59,7 @@ export default function StaffManagementPage() {
   const [assigning, setAssigning] = useState(false)
 
   // Delete confirmation
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -230,6 +231,7 @@ export default function StaffManagementPage() {
 
     try {
       setDeleting(true)
+      setShowDeleteConfirm(false)
       setError('')
       setSuccess('')
 
@@ -248,7 +250,6 @@ export default function StaffManagementPage() {
       console.log('? Staff deleted:', result)
 
       setSuccess(`Staff member ${staffToDelete.first_name} ${staffToDelete.last_name} deleted successfully`)
-      setShowDeleteModal(false)
       setStaffToDelete(null)
       
       // Reload data
@@ -541,7 +542,7 @@ export default function StaffManagementPage() {
                       <button
                         onClick={() => {
                           setStaffToDelete(staffMember)
-                          setShowDeleteModal(true)
+                          setShowDeleteConfirm(true)
                         }}
                         className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition-colors"
                       >
@@ -755,51 +756,20 @@ export default function StaffManagementPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && staffToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Delete Staff Member</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                This action cannot be undone
-              </p>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6">
-              <p className="text-gray-700">
-                Are you sure you want to delete{' '}
-                <span className="font-semibold">
-                  {staffToDelete.first_name} {staffToDelete.last_name}
-                </span>
-                ? This will remove their profile and all batch assignments.
-              </p>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200 flex gap-3">
-              <button
-                onClick={handleDeleteStaff}
-                disabled={deleting}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {deleting ? 'Deleting...' : 'Delete Staff'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false)
-                  setStaffToDelete(null)
-                }}
-                className="px-6 py-3 rounded-lg font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setStaffToDelete(null)
+        }}
+        onConfirm={handleDeleteStaff}
+        title="Delete Staff Member?"
+        message={staffToDelete ? `Are you sure you want to delete ${staffToDelete.first_name} ${staffToDelete.last_name}? This will remove their access and all associated data. This action cannot be undone.` : ''}
+        confirmText="Delete"
+        variant="danger"
+        loading={deleting}
+      />
       </>
       )}
     </div>

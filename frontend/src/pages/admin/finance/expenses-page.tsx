@@ -17,6 +17,7 @@ import {
   X,
   Trash2
 } from 'lucide-react'
+import ConfirmationDialog from '@/components/ui/confirmation-dialog'
 
 interface Expense {
   id: string
@@ -61,6 +62,11 @@ export default function ExpensesPage() {
   const [vendorName, setVendorName] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Confirmation dialog state
+  const [showAddConfirm, setShowAddConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null)
 
   // Edit state
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null)
@@ -127,6 +133,7 @@ export default function ExpensesPage() {
   const handleAddExpense = async () => {
     try {
       setSaving(true)
+      setShowAddConfirm(false)
       setError('')
       setSuccess('')
 
@@ -296,33 +303,39 @@ export default function ExpensesPage() {
   }
 
   const handleDeleteExpense = async (expenseId: string) => {
-    if (!confirm('Are you sure you want to delete this expense? This will also adjust the account balance.')) {
-      return
-    }
+    setExpenseToDelete(expenseId)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteExpense = async () => {
+    if (!expenseToDelete) return
 
     try {
       setSaving(true)
+      setShowDeleteConfirm(false)
       setError('')
 
       // Step 1: Get the expense details before deleting
-      const { data: expenseData, error: fetchError } = await db
+      const { data: expenseDataArray, error: fetchError } = await db
         .from('expenses')
         .select('*')
-        .eq('id', expenseId)
-        .single()
+        .eq('id', expenseToDelete)
 
       if (fetchError) throw fetchError
-      if (!expenseData) throw new Error('Expense not found')
+      if (!expenseDataArray || expenseDataArray.length === 0) throw new Error('Expense not found')
+      
+      const expenseData = expenseDataArray[0]
 
       // Step 2: Get the account details
-      const { data: accountData, error: accountError } = await db
+      const { data: accountDataArray, error: accountError } = await db
         .from('financial_accounts')
         .select('*')
         .eq('id', expenseData.account_id)
-        .single()
 
       if (accountError) throw accountError
-      if (!accountData) throw new Error('Account not found')
+      if (!accountDataArray || accountDataArray.length === 0) throw new Error('Account not found')
+      
+      const accountData = accountDataArray[0]
 
       // Step 3: Calculate new balance (add back the expense amount since we're reversing the deduction)
       const newBalance = accountData.current_balance + expenseData.amount
@@ -331,7 +344,7 @@ export default function ExpensesPage() {
       const { error: deleteError } = await db
         .from('expenses')
         .delete()
-        .eq('id', expenseId)
+        .eq('id', expenseToDelete)
 
       if (deleteError) throw deleteError
 
@@ -357,6 +370,7 @@ export default function ExpensesPage() {
       }
 
       setSuccess(`Expense deleted successfully! Account balance updated to ₹${newBalance.toFixed(2)}`)
+      setExpenseToDelete(null)
       await loadData()
       setTimeout(() => setSuccess(''), 5000)
     } catch (err: any) {
@@ -569,7 +583,7 @@ export default function ExpensesPage() {
 
           <div className="flex gap-3 mt-6">
             <button
-              onClick={handleAddExpense}
+              onClick={() => setShowAddConfirm(true)}
               disabled={saving}
               className="bg-art-indigo hover:bg-art-indigo/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -981,6 +995,32 @@ export default function ExpensesPage() {
           Showing {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''} • Total: ₹{stats.total.toFixed(2)}
         </div>
       )}
+      
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={showAddConfirm}
+        onClose={() => setShowAddConfirm(false)}
+        onConfirm={handleAddExpense}
+        title="Add Expense?"
+        message={`Are you sure you want to add an expense of ₹${amount} for ${category}? This will deduct from the ${accountType} ${paymentMode} account.`}
+        confirmText="Add Expense"
+        variant="warning"
+        loading={saving}
+      />
+      
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setExpenseToDelete(null)
+        }}
+        onConfirm={confirmDeleteExpense}
+        title="Delete Expense?"
+        message="Are you sure you want to delete this expense? This will also adjust the account balance."
+        confirmText="Delete"
+        variant="danger"
+        loading={saving}
+      />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { db } from '@/lib/db-api'
 import { format } from 'date-fns'
 import { DollarSign, Plus, Search, Filter, CreditCard, Banknote, AlertCircle, CheckCircle, XCircle, Edit, Save, X, Trash2 } from 'lucide-react'
+import ConfirmationDialog from '@/components/ui/confirmation-dialog'
 
 interface FinancialTransaction {
   id: string
@@ -51,6 +52,9 @@ export default function FeesPage() {
   const [transactionRef, setTransactionRef] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Confirmation dialog state
+  const [showPaymentConfirm, setShowPaymentConfirm] = useState(false)
 
   // Edit state
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null)
@@ -108,6 +112,7 @@ export default function FeesPage() {
   const handleAddPayment = async () => {
     try {
       setSaving(true)
+      setShowPaymentConfirm(false)
       setError('')
       setSuccess('')
 
@@ -451,7 +456,7 @@ export default function FeesPage() {
 
           <div className="flex gap-3 mt-6">
             <button
-              onClick={handleAddPayment}
+              onClick={() => setShowPaymentConfirm(true)}
               disabled={saving}
               className="bg-art-indigo hover:bg-art-indigo/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -738,6 +743,22 @@ export default function FeesPage() {
           Showing {filteredTransactions.length} payment{filteredTransactions.length !== 1 ? 's' : ''}
         </div>
       )}
+      
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showPaymentConfirm}
+        onClose={() => setShowPaymentConfirm(false)}
+        onConfirm={handleAddPayment}
+        title="Record Payment?"
+        message={
+          selectedStudent && amount
+            ? `Are you sure you want to record a payment of ₹${amount} for ${enrollments.find(e => e.id === selectedStudent)?.student_first_name} ${enrollments.find(e => e.id === selectedStudent)?.student_last_name} via ${paymentMode}?`
+            : 'Are you sure you want to record this payment?'
+        }
+        confirmText="Record Payment"
+        variant="info"
+        loading={saving}
+      />
     </div>
   )
 }

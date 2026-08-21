@@ -7,6 +7,7 @@ import {
   Users, Clock, FileText
 } from 'lucide-react'
 import { format } from 'date-fns'
+import ConfirmationDialog from '@/components/ui/confirmation-dialog'
 
 interface Student {
   id: string
@@ -68,6 +69,9 @@ export default function StudentDetailsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  // Confirmation dialog state
+  const [showPauseConfirm, setShowPauseConfirm] = useState(false)
 
   // Editable fields
   const [editData, setEditData] = useState<Partial<Student>>({})
@@ -263,6 +267,7 @@ export default function StudentDetailsPage() {
 
     try {
       setSaving(true)
+      setShowPauseConfirm(false)
       const isPaused = student.status === 'PAUSED'
       const newStatus = isPaused ? 'ACTIVE' : 'PAUSED'
 
@@ -413,7 +418,7 @@ export default function StudentDetailsPage() {
                   Edit
                 </button>
                 <button
-                  onClick={handlePauseResume}
+                  onClick={() => setShowPauseConfirm(true)}
                   disabled={saving}
                   className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
                     student.status === 'PAUSED'
@@ -901,6 +906,22 @@ export default function StudentDetailsPage() {
           </div>
         </div>
       </div>
+      
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showPauseConfirm}
+        onClose={() => setShowPauseConfirm(false)}
+        onConfirm={handlePauseResume}
+        title={student?.status === 'PAUSED' ? 'Resume Student?' : 'Pause Student?'}
+        message={
+          student?.status === 'PAUSED'
+            ? `Are you sure you want to resume ${student.student_first_name}? They will be marked as active and can attend classes again.`
+            : `Are you sure you want to pause ${student?.student_first_name}? They will not be able to attend classes until resumed.`
+        }
+        confirmText={student?.status === 'PAUSED' ? 'Resume' : 'Pause'}
+        variant={student?.status === 'PAUSED' ? 'info' : 'warning'}
+        loading={saving}
+      />
     </div>
   )
 }
