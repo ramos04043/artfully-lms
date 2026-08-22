@@ -4,7 +4,7 @@ import { db } from '@/lib/db-api'
 import { 
   ArrowLeft, Mail, Phone, MapPin, Calendar, 
   School, Edit, Pause, Play, X, Save, AlertCircle, CheckCircle,
-  Users, Clock, FileText
+  Users, Clock, FileText, Trash2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import ConfirmationDialog from '@/components/ui/confirmation-dialog'
@@ -72,6 +72,8 @@ export default function StudentDetailsPage() {
 
   // Confirmation dialog state
   const [showPauseConfirm, setShowPauseConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Editable fields
   const [editData, setEditData] = useState<Partial<Student>>({})
@@ -305,6 +307,38 @@ export default function StudentDetailsPage() {
     }
   }
 
+  const handleDeleteStudent = async () => {
+    if (!student) return
+
+    try {
+      setDeleting(true)
+      setShowDeleteConfirm(false)
+      setError('')
+
+      console.log('🗑️ Deleting student enrollment:', id)
+
+      // Delete the enrollment record
+      const { error: deleteError } = await db
+        .from('enrollments')
+        .delete()
+        .eq('id', id)
+
+      if (deleteError) {
+        console.error('Delete error:', deleteError)
+        throw new Error(deleteError.message || 'Failed to delete student')
+      }
+
+      console.log('✅ Student deleted successfully')
+      
+      // Navigate back to students list
+      navigate('/admin/students')
+    } catch (err: any) {
+      console.error('Error deleting student:', err)
+      setError(err.message || 'Failed to delete student')
+      setDeleting(false)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE':
@@ -437,6 +471,14 @@ export default function StudentDetailsPage() {
                       Pause
                     </>
                   )}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={deleting}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
                 </button>
               </>
             )}
@@ -907,7 +949,7 @@ export default function StudentDetailsPage() {
         </div>
       </div>
       
-      {/* Confirmation Dialog */}
+      {/* Pause/Resume Confirmation Dialog */}
       <ConfirmationDialog
         isOpen={showPauseConfirm}
         onClose={() => setShowPauseConfirm(false)}
@@ -921,6 +963,22 @@ export default function StudentDetailsPage() {
         confirmText={student?.status === 'PAUSED' ? 'Resume' : 'Pause'}
         variant={student?.status === 'PAUSED' ? 'info' : 'warning'}
         loading={saving}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteStudent}
+        title="Delete Student?"
+        message={
+          student
+            ? `Are you sure you want to delete ${student.student_first_name} ${student.student_last_name}? This will permanently remove their enrollment record, including all attendance history and batch assignments. This action cannot be undone.`
+            : ''
+        }
+        confirmText="Delete"
+        variant="danger"
+        loading={deleting}
       />
     </div>
   )
