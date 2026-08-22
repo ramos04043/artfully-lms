@@ -32,6 +32,9 @@ interface Expense {
   status: string
   transaction_id?: string
   created_at: string
+  voided_at?: string
+  voided_by?: string
+  voided_reason?: string
 }
 
 interface FinancialAccount {
@@ -326,7 +329,16 @@ export default function ExpensesPage() {
       setTimeout(() => setSuccess(''), 5000)
     } catch (err: any) {
       console.error('Error voiding expense:', err)
-      setError(err.message || 'Failed to void expense')
+      const errorMessage = err.message || 'Failed to void expense'
+      
+      // If already voided, reload data to sync UI
+      if (errorMessage.includes('already voided')) {
+        setError('This expense was already voided. Refreshing data...')
+        await loadData()
+        setTimeout(() => setError(''), 3000)
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setSaving(false)
     }
@@ -338,8 +350,13 @@ export default function ExpensesPage() {
     return account
   }
 
-  // Filter expenses
+  // Filter expenses - EXCLUDE VOIDED EXPENSES
   const filteredExpenses = expenses.filter((expense) => {
+    // CRITICAL: Exclude voided expenses from display
+    if (expense.voided_at) {
+      return false
+    }
+
     const account = getAccountInfo(expense.account_id)
     
     const matchesSearch =

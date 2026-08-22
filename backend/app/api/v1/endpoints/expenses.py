@@ -236,7 +236,13 @@ async def void_expense(
         )
         
         if not updated_expenses:
-            logger.warning(f"Could not update expense voided status: {expense_id}")
+            logger.error(f"CRITICAL: Transaction voided but expense update failed: {expense_id}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Transaction was voided but expense record update failed. "
+                       f"Expense {expense_id} requires manual reconciliation. "
+                       f"Transaction {transaction_id} is voided and balance is correct."
+            )
         
         logger.info(f"Expense {expense_id} voided successfully")
         
@@ -275,3 +281,105 @@ async def get_categories(
     except Exception as e:
         logger.error(f"Failed to get categories: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get categories: {str(e)}")
+
+
+@router.post("/expenses/reconcile-orphaned")
+async def reconcile_orphaned_expenses(
+    current_user: dict = Depends(require_admin)
+):
+    """
+    Find and fix expenses where transaction is voided but expense record is not.
+    
+    This can happen if the expense update fails during the void operation.
+    The financial balance is already correct (transaction is voided), but the
+    UI still shows the expense because expense.voided_at is NULL.
+    
+    This endpoint finds these orphaned records and marks them as voided.
+    """
+    try:
+        logger.info("Starting orphaned expense reconciliation")
+        
+        # Find expenses with voided transactions but not marked as voided
+        all_expenses = await db.select("expenses")
+        
+        orphaned = []
+        fixed = []
+        errors = []
+        
+        for expense in all_expenses:
+            # Skip already voided expenses
+            if expense.get('voided_at'):
+                continue
+            
+            transaction_id = expense.get('transaction_id')
+            if not transaction_id:
+                continue
+            
+            # Check if transaction is voided
+            transactions = await db.select(
+                "financial_transactions",
+                filters={"id": transaction_id}
+            )
+            
+            if not transactions:
+                continue
+            
+            transaction = transactions[0]
+            
+            # Found orphaned expense: transaction voided but expense not marked
+            if transaction.get('status') == 'VOIDED':
+                orphaned.append({
+                    "expense_id": expense['id'],
+                    "amount": expense['amount'],
+                    "category": expense['category'],
+                    "description": expense['description'],
+                    "transaction_id": transaction_id,
+                    "transaction_voided_at": transaction.get('voided_at'),
+                    "transaction_voided_by": transaction.get('voided_by')
+                })
+                
+                # Fix it: mark expense as voided to match transaction
+                try:
+                    updated = await db.update(
+                        "expenses",
+                        data={
+                            "voided_at": transaction.get('voided_at'),
+                            "voided_by": transaction.get('voided_by') or 'system_reconciliation',
+                            "voided_reason": f"Reconciled orphaned record - transaction was voided but expense was not updated"
+                        },
+                        filters={"id": expense['id']}
+                    )
+                    
+                    if updated:
+                        fixed.append({
+                            "expense_id": expense['id'],
+                            "amount": expense['amount'],
+                            "category": expense['category']
+                        })
+                        logger.info(f"Fixed orphaned expense: {expense['id']}")
+                    else:
+                        errors.append({
+                            "expense_id": expense['id'],
+                            "error": "Update returned no records"
+                        })
+                        logger.error(f"Failed to fix orphaned expense: {expense['id']}")
+                except Exception as e:
+                    errors.append({
+                        "expense_id": expense['id'],
+                        "error": str(e)
+                    })
+                    logger.error(f"Error fixing orphaned expense {expense['id']}: {str(e)}")
+        
+        return {
+            "message": f"Reconciliation complete. Found {len(orphaned)} orphaned expenses.",
+            "orphaned_found": len(orphaned),
+            "fixed": len(fixed),
+            "errors": len(errors),
+            "orphaned_expenses": orphaned,
+            "fixed_expenses": fixed,
+            "error_details": errors
+        }
+        
+    except Exception as e:
+        logger.error(f"Orphaned expense reconciliation failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Reconciliation failed: {str(e)}")
