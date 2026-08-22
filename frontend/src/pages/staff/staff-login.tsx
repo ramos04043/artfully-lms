@@ -106,7 +106,7 @@ export default function StaffLogin() {
               <Users className="w-7 h-7 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Art Studio LMS</h1>
+              <h1 className="text-2xl font-bold text-white">Artfully LMS</h1>
               <p className="text-sm text-blue-200">Staff Portal</p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function StaffLogin() {
             </ul>
           </div>
           <div className="text-sm text-blue-200">
-            © 2026 Art Studio LMS. All rights reserved.
+            © 2026 Artfully LMS. All rights reserved.
           </div>
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function StaffLogin() {
               <Users className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Art Studio LMS</h1>
+              <h1 className="text-xl font-bold text-gray-900">Artfully LMS</h1>
               <p className="text-sm text-gray-600">Staff Portal</p>
             </div>
           </div>

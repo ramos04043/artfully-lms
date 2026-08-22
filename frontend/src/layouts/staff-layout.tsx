@@ -34,7 +34,7 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
               🎨
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">Art Studio</h1>
+              <h1 className="text-lg font-semibold text-foreground">Artfully</h1>
               <p className="text-xs text-muted-foreground">Staff Portal</p>
             </div>
           </div>

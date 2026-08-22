@@ -66,7 +66,7 @@ export default function AdminLogin() {
               <Building2 className="w-7 h-7 text-purple-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Art Studio LMS</h1>
+              <h1 className="text-2xl font-bold text-white">Artfully LMS</h1>
               <p className="text-sm text-purple-200">Admin Portal</p>
             </div>
           </div>
@@ -76,7 +76,7 @@ export default function AdminLogin() {
               Welcome Back, Admin
             </h2>
             <p className="text-lg text-purple-200">
-              Manage your art studio operations, track attendance, monitor fees, and oversee all aspects of your business.
+              Manage your studio operations, track attendance, monitor fees, and oversee all aspects of your business.
             </p>
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function AdminLogin() {
             </div>
           </div>
           <div className="text-sm text-purple-200">
-            © 2026 Art Studio LMS. All rights reserved.
+            © 2026 Artfully LMS. All rights reserved.
           </div>
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function AdminLogin() {
               <Building2 className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Art Studio LMS</h1>
+              <h1 className="text-xl font-bold text-gray-900">Artfully LMS</h1>
               <p className="text-sm text-gray-600">Admin Portal</p>
             </div>
           </div>

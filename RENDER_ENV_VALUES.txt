@@ -13,7 +13,7 @@ IMPORTANT RENDER SETTINGS:
 PYTHON_VERSION=3.11
 
 # Application
-APP_NAME=Art Studio Management
+APP_NAME=Artfully
 APP_ENV=production
 DEBUG=false
 API_V1_PREFIX=/api
@@ -41,7 +41,7 @@ SMTP_PORT=587
 SMTP_USER=zendbx@gmail.com
 SMTP_PASSWORD=dmsm dwcy sfnc lqyx
 SMTP_FROM_EMAIL=zendbx@gmail.com
-SMTP_FROM_NAME=Artfully Art Studio
+SMTP_FROM_NAME=Artfully
 
 # Logging
 LOG_LEVEL=INFO

@@ -60,7 +60,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <Palette className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Art Studio</h1>
+            <h1 className="text-lg font-semibold text-foreground">Artfully</h1>
             <p className="text-xs text-muted-foreground">Admin Portal</p>
           </div>
         </div>

@@ -5,7 +5,7 @@ from datetime import date
 from typing import List, Dict
 
 
-def email_wrapper(content: str, title: str = "Artfully Art Studio") -> str:
+def email_wrapper(content: str, title: str = "Artfully") -> str:
     """
     HTML email wrapper with Artfully branding
     
@@ -119,7 +119,7 @@ def email_wrapper(content: str, title: str = "Artfully Art Studio") -> str:
     <div class="container">
         <div class="header">
             <div class="logo">🎨 Artfully</div>
-            <div style="color: #6b7280; font-size: 14px;">Art Studio Management</div>
+            <div style="color: #6b7280; font-size: 14px;">Management System</div>
         </div>
         
         <div class="content">
@@ -129,7 +129,7 @@ def email_wrapper(content: str, title: str = "Artfully Art Studio") -> str:
         <div class="footer">
             <p>This is an automated message from Artfully LMS</p>
             <p style="margin-top: 10px;">
-                <strong>Artfully Art Studio</strong><br>
+                <strong>Artfully</strong><br>
                 Your Partner in Creative Learning
             </p>
         </div>
@@ -281,7 +281,7 @@ def fee_due_notification_template(
         
         <div style="background-color: #fef3c7; border-left: 4px solid #fbbf24; padding: 15px; border-radius: 4px; margin: 20px 0;">
             <strong>Payment Instructions:</strong><br>
-            Please contact Artfully Art Studio for payment details and methods.
+            Please contact Artfully for payment details and methods.
         </div>
         
         <p>Thank you for being a part of the Artfully family!</p>
@@ -351,7 +351,7 @@ def session_completion_notification_template(
             </div>
         </div>
         
-        <p>We appreciate your continued trust in Artfully Art Studio for {student_name}'s creative journey!</p>
+        <p>We appreciate your continued trust in Artfully for {student_name}'s creative journey!</p>
         
         <p style="margin-top: 30px;">
             Best regards,<br>

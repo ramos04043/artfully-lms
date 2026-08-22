@@ -249,7 +249,7 @@ async def submit_attendance(
                                     "recipient_email": parent_email,
                                     "recipient_name": student.get('parent_first_name', 'Parent'),
                                     "subject": f"Absence Notification - {student_name}",
-                                    "body": f"Dear Parent,\n\n{student_name} was marked absent on {submission.class_date}.\n\nIf this is unexpected, please contact us.\n\nArt Studio Management",
+                                    "body": f"Dear Parent,\n\n{student_name} was marked absent on {submission.class_date}.\n\nIf this is unexpected, please contact us.\n\nArtfully",
                                     "email_type": "ABSENCE_NOTIFICATION",
                                     "status": "QUEUED",
                                     "reference_type": "attendance",

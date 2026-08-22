@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # Application
-    APP_NAME: str = "Art Studio Management"
+    APP_NAME: str = "Artfully"
     APP_ENV: str = "development"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api"
@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = "noreply@artstudio.com"
-    SMTP_FROM_NAME: str = "Art Studio"
+    SMTP_FROM_NAME: str = "Artfully"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"  # Optional - only needed if using Celery

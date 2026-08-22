@@ -11,7 +11,7 @@ export default function LandingPage() {
             <div className="text-5xl">🎨</div>
           </div>
           <h1 className="text-5xl font-bold text-gray-900 mb-3">
-            Art Studio LMS
+            Artfully LMS
           </h1>
           <p className="text-xl text-gray-600">
             Learning Management System
@@ -128,7 +128,7 @@ export default function LandingPage() {
         {/* Footer */}
         <div className="text-center mt-12">
           <p className="text-sm text-gray-500">
-            © 2026 Art Studio LMS • Powered by ZendBX
+            © 2026 Artfully LMS • Powered by ZendBX
           </p>
         </div>
       </div>

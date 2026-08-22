@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               🎨
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Art Studio</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Artfully</h1>
               <p className="text-sm text-gray-600">Management System</p>
             </div>
           </div>
@@ -25,14 +25,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               Welcome back
             </h2>
             <p className="text-lg text-gray-600">
-              Manage your art studio with ease. Track attendance, manage students,
+              Manage your studio with ease. Track attendance, manage students,
               and streamline operations all in one place.
             </p>
           </div>
         </div>
 
         <div className="text-sm text-gray-500">
-          © 2024 Art Studio Management. Built with care for art schools.
+          © 2024 Artfully. Built with care for art schools.
         </div>
       </div>
 

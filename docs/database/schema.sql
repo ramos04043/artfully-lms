@@ -1304,9 +1304,9 @@ VALUES
 
 (
     'studio_name',
-    'Art Studio',
+    'Artfully',
     'STRING',
-    'Art studio name',
+    'Studio name',
     TRUE
 ),
 
