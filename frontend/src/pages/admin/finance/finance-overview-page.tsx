@@ -10,9 +10,11 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import ConfirmationDialog from '@/components/ui/confirmation-dialog'
 
 interface FinancialAccount {
   id: string
@@ -42,6 +44,12 @@ export default function FinanceOverviewPage() {
   const [recentTransactions, setRecentTransactions] = useState<FinancialTransaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -75,6 +83,78 @@ export default function FinanceOverviewPage() {
   const getAccountInfo = (accountId: string) => {
     const account = accounts.find((a) => a.id === accountId)
     return account
+  }
+
+  const handleDeleteTransaction = (transactionId: string) => {
+    setTransactionToDelete(transactionId)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteTransaction = async () => {
+    if (!transactionToDelete) return
+
+    try {
+      setDeleting(true)
+      setShowDeleteConfirm(false)
+      setError('')
+
+      console.log('🗑️ Deleting transaction:', transactionToDelete)
+
+      // Get transaction details before deletion
+      const { data: transactionData, error: fetchError } = await db
+        .from('financial_transactions')
+        .select('*')
+        .eq('id', transactionToDelete)
+
+      if (fetchError) throw fetchError
+      if (!transactionData || transactionData.length === 0) throw new Error('Transaction not found')
+
+      const transaction = transactionData[0]
+
+      // Get account details
+      const { data: accountData, error: accountError } = await db
+        .from('financial_accounts')
+        .select('*')
+        .eq('id', transaction.account_id)
+
+      if (accountError) throw accountError
+      if (!accountData || accountData.length === 0) throw new Error('Account not found')
+
+      const account = accountData[0]
+
+      // Calculate new balance (reverse the transaction)
+      const isInflow = transaction.transaction_type === 'INFLOW'
+      const newBalance = isInflow 
+        ? account.current_balance - transaction.amount  // Remove inflow
+        : account.current_balance + transaction.amount  // Add back outflow
+
+      // Delete transaction
+      const { error: deleteError } = await db
+        .from('financial_transactions')
+        .delete()
+        .eq('id', transactionToDelete)
+
+      if (deleteError) throw deleteError
+
+      // Update account balance
+      const { error: balanceError } = await db
+        .from('financial_accounts')
+        .update({ current_balance: newBalance })
+        .eq('id', transaction.account_id)
+
+      if (balanceError) throw balanceError
+
+      console.log('✅ Transaction deleted successfully')
+      setSuccess(`Transaction deleted successfully! Account balance updated to ₹${newBalance.toFixed(2)}`)
+      setTransactionToDelete(null)
+      await loadData()
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (err: any) {
+      console.error('Error deleting transaction:', err)
+      setError(err.message || 'Failed to delete transaction')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   // Calculate totals
@@ -345,12 +425,15 @@ export default function FinanceOverviewPage() {
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Amount
                   </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {recentTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="text-gray-400">
                         <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p className="text-lg font-medium">No transactions yet</p>
@@ -421,6 +504,16 @@ export default function FinanceOverviewPage() {
                             </div>
                           )}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={() => handleDeleteTransaction(transaction.id)}
+                            disabled={deleting}
+                            className="text-red-600 hover:text-red-800 disabled:opacity-50 transition-colors"
+                            title="Delete transaction"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
                       </tr>
                     )
                   })
@@ -430,6 +523,28 @@ export default function FinanceOverviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Success Message */}
+      {success && (
+        <div className="fixed bottom-4 right-4 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg">
+          <p className="text-green-800 text-sm">{success}</p>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setTransactionToDelete(null)
+        }}
+        onConfirm={confirmDeleteTransaction}
+        title="Delete Transaction?"
+        message="Are you sure you want to delete this transaction? This will also adjust the account balance. This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   )
 }
