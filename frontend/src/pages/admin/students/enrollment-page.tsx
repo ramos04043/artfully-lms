@@ -183,8 +183,30 @@ export default function EnrollmentPage() {
         throw new Error('Please select at least one batch')
       }
 
-      // Generate student ID
-      const studentId = `STU${Date.now().toString().slice(-8)}`
+      // Generate student ID in format ART1001, ART1002, etc.
+      // Get the highest existing student number from enrollments table
+      const { data: existingEnrollments } = await db
+        .from('enrollments')
+        .select('student_id')
+        .order('created_at', { ascending: false })
+        .limit(100)
+      
+      let maxNumber = 1000
+      if (existingEnrollments && existingEnrollments.length > 0) {
+        // Extract numbers from student IDs (handles both STU and ART formats)
+        const numbers = existingEnrollments
+          .map(e => {
+            const match = e.student_id.match(/\d+/)
+            return match ? parseInt(match[0]) : 0
+          })
+          .filter(n => n > 0)
+        
+        if (numbers.length > 0) {
+          maxNumber = Math.max(...numbers)
+        }
+      }
+      
+      const studentId = `ART${maxNumber + 1}`
 
       console.log('Starting enrollment with new enrollments table...')
       console.log('Student data:', { firstName, studentId })
