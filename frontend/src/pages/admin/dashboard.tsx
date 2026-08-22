@@ -146,7 +146,7 @@ export default function AdminDashboard() {
       end_time: batch.end_time,
       day_of_week: batch.day_of_week,
       class_type: 'Regular',
-      duration_minutes: 60, // Default duration
+      duration_minutes: 75, // 1 hour 15 minutes per class
     }))
 
     return classesWithNames
