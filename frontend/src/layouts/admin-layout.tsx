@@ -17,6 +17,7 @@ import {
   LogOut,
   Palette,
   BookOpen,
+  DollarSign,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -32,6 +33,7 @@ const navigation = [
   { name: 'Compensation', href: '/admin/compensation', icon: Clock },
   { name: 'Sessions', href: '/admin/sessions', icon: BookOpen },
   { name: 'Expenses', href: '/admin/finance/expenses', icon: TrendingDown },
+  { name: 'Revenue', href: '/admin/finance/revenue', icon: DollarSign },
   { name: 'Fees', href: '/admin/fees', icon: Wallet },
   { name: 'Finance', href: '/admin/finance', icon: TrendingUp },
   { name: 'Reports', href: '/admin/reports', icon: FileText },

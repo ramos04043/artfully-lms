@@ -54,7 +54,8 @@ class ZendBXClient:
         columns: str = '*',
         filters: Optional[Dict[str, Any]] = None,
         order_by: Optional[str] = None,
-        limit: Optional[int] = None
+        limit: Optional[int] = None,
+        raw_params: Optional[Dict[str, str]] = None
     ) -> List[Dict[str, Any]]:
         """
         Select data from table
@@ -63,16 +64,34 @@ class ZendBXClient:
             table: Table name
             columns: Columns to select (comma-separated)
             filters: Filter conditions as dict (e.g., {'status': 'ACTIVE', 'age_gte': 18})
+                     For NULL checks: {'column_isnull': True} or {'column_notnull': True}
             order_by: Order by column (e.g., 'created_at.desc')
             limit: Limit number of results
+            raw_params: Raw query params to pass directly (for special cases like NULL checks)
         """
         url = f"{self.base_url}/{table}"
         params = {'select': columns}
         
+        # Add raw params first (they take precedence)
+        if raw_params:
+            params.update(raw_params)
+        
         if filters:
             for key, value in filters.items():
+                # Skip if already set by raw_params
+                if key in params or key[:-7] in params or key[:-8] in params or key[:-4] in params or key[:-3] in params or key[:-5] in params or key[:-6] in params:
+                    continue
+                    
                 # Check if key has an operator suffix
-                if key.endswith('_gte'):
+                if key.endswith('_isnull'):
+                    column = key[:-7]  # Remove _isnull
+                    if column not in params:
+                        params[column] = "is.null"
+                elif key.endswith('_notnull'):
+                    column = key[:-8]  # Remove _notnull
+                    if column not in params:
+                        params[column] = "not.is.null"
+                elif key.endswith('_gte'):
                     column = key[:-4]  # Remove _gte
                     params[column] = f"gte.{value}"
                 elif key.endswith('_gt'):
@@ -191,7 +210,13 @@ class ZendBXClient:
         
         # Handle filter operators (same as select method)
         for key, value in filters.items():
-            if key.endswith('_gte'):
+            if key.endswith('_isnull'):
+                column = key[:-7]
+                params[column] = "is.null"
+            elif key.endswith('_notnull'):
+                column = key[:-8]
+                params[column] = "not.is.null"
+            elif key.endswith('_gte'):
                 column = key[:-4]
                 params[column] = f"gte.{value}"
             elif key.endswith('_gt'):

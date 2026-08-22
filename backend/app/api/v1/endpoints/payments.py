@@ -1,6 +1,6 @@
 """
 Payment Endpoints
-Handles fee payments with atomic transactions and OpEX integration
+Handles fee payments with atomic transactions and OpEX integration via FinanceService
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -9,6 +9,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from app.auth.deps import require_admin
+from app.services.finance_service import FinanceService
 from app.zendbx_client import db
 import logging
 
@@ -30,27 +31,35 @@ class PaymentResponse(BaseModel):
     """Payment response"""
     payment_id: str
     transaction_id: str
-    account_id: str
-    new_balance: float
+    enrollment_id: str
+    amount: float
+    payment_mode: str
+    account: str
+    calculated_balance: float
     message: str
 
 
 @router.post("/", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
 async def create_payment(
-    payment: PaymentCreate
+    payment: PaymentCreate,
+    current_user: dict = Depends(require_admin)
 ):
     """
-    Create a new fee payment
+    Create a new fee payment using centralized FinanceService
     
     This endpoint:
     1. Validates the enrollment exists
-    2. Gets the correct OpEX account (BANK or CASH)
-    3. Creates a financial transaction (INFLOW)
-    4. Updates account balance atomically
+    2. Creates a payment business record
+    3. Resolves OPEX account (BANK or CASH)
+    4. Creates REVENUE transaction via FinanceService
+    5. Links transaction back to payment
+    6. Returns calculated ledger balance
     
     **Business Rules:**
     - Payment amount must be positive
-    - Account balance is updated atomically
+    - Student fees are ALWAYS OpEX Revenue
+    - No duplicate transactions allowed per payment
+    - Ledger balance is calculated, not stored
     """
     try:
         logger.info(f"Creating payment for enrollment {payment.enrollment_id}, amount: {payment.amount}")
@@ -70,91 +79,152 @@ async def create_payment(
         
         enrollment = enrollments[0]
         student_name = f"{enrollment['student_first_name']} {enrollment['student_last_name']}"
-        student_id = enrollment['student_id']
+        student_ref_id = enrollment['student_id']  # This is ART1001
         
-        logger.info(f"Payment for student: {student_name} ({student_id})")
+        # For Phase 3.1: Use enrollment ID as student_id since there's no separate students table
+        # The enrollment.id serves as the unique identifier for this student+programme combination
+        student_uuid = payment.enrollment_id  # Use enrollment ID
         
-        # Step 2: Get the correct OpEX account
-        accounts = await db.select(
-            "financial_accounts",
-            filters={
-                "account_type": "OPEX",
-                "account_mode": payment.payment_mode,
-                "is_active": "true"
-            }
-        )
+        logger.info(f"Payment for student: {student_name} (Ref: {student_ref_id}, Enrollment: {student_uuid})")
         
-        if not accounts:
+        # Step 2: Resolve OPEX account by mode (CASH or BANK)
+        try:
+            account = await FinanceService.get_account_by_type_and_mode(
+                account_type="OPEX",
+                account_mode=payment.payment_mode
+            )
+        except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"OpEX {payment.payment_mode} account not found. Please run financial account setup."
+                detail=str(e)
             )
         
-        account = accounts[0]
         account_id = account['id']
-        current_balance = float(account['current_balance'])
+        account_name = account['account_name']
         
-        logger.info(f"Using account: {account['account_name']}, current balance: {current_balance}")
+        logger.info(f"Using account: {account_name}")
         
-        # Step 3: Calculate new balance
-        new_balance = current_balance + payment.amount
-        
-        # Step 4: Create description
-        description = f"Fee payment from {student_name} ({student_id})"
+        # Step 3: Create payment business record
+        description = f"Fee payment from {student_name} (Ref: {student_ref_id})"
         if payment.notes:
             description += f" - {payment.notes}"
         
-        # Step 5: Create financial transaction
-        transaction_data = {
-            "account_id": account_id,
-            "transaction_type": "INFLOW",
-            "amount": payment.amount,
-            "balance_after": new_balance,
-            "category": "FEE_COLLECTION",
-            "description": description,
-            "reference_type": "FEE_PAYMENT",
-            "reference_id": payment.enrollment_id,
-            "transaction_date": payment.payment_date.isoformat()
+        # Payment data matching actual database schema
+        payment_data = {
+            "student_id": student_uuid,  # Use UUID, not reference ID
+            "student_name": student_name,
+            "student_ref_id": student_ref_id,  # Store reference ID separately
+            "amount": float(payment.amount),
+            "payment_mode": payment.payment_mode,
+            "payment_date": payment.payment_date.isoformat(),
+            "transaction_reference": payment.transaction_reference,
+            "notes": payment.notes,
+            "status": "COMPLETED"
         }
         
-        transactions = await db.insert(
-            "financial_transactions",
-            transaction_data
-        )
+        logger.info(f"Inserting payment with data: {payment_data}")
         
-        if not transactions:
+        try:
+            payments_records = await db.insert(
+                "payments",
+                payment_data
+            )
+        except Exception as insert_error:
+            logger.error(f"Payment insert failed: {str(insert_error)}")
+            logger.error(f"Payment data was: {payment_data}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create transaction"
+                detail=f"Payment creation failed: {str(insert_error)}"
             )
         
-        transaction = transactions[0]
+        if not payments_records:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create payment record"
+            )
+        
+        payment_record = payments_records[0]
+        payment_id = payment_record['id']
+        
+        logger.info(f"Payment record created: {payment_id}")
+        
+        # Step 4: Check for duplicate transaction
+        existing_transactions = await db.select(
+            "financial_transactions",
+            filters={
+                "reference_type": "FEE_PAYMENT",
+                "reference_id": payment_id,
+                "status": "ACTIVE"
+            }
+        )
+        
+        if existing_transactions:
+            logger.error(f"Duplicate transaction detected for payment {payment_id}")
+            # Attempt cleanup
+            await db.delete("payments", filters={"id": payment_id})
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Transaction already exists for payment {payment_id}"
+            )
+        
+        # Step 5: Create REVENUE transaction via FinanceService
+        try:
+            transaction = await FinanceService.create_transaction(
+                account_id=account_id,
+                transaction_type="REVENUE",
+                amount=payment.amount,
+                category_code="STUDENT_FEES",
+                description=description,
+                reference_type="FEE_PAYMENT",
+                reference_id=payment_id,
+                transaction_date=payment.payment_date,
+                created_by=current_user.get('email') or current_user.get('id')
+            )
+        except Exception as e:
+            logger.error(f"Transaction creation failed: {str(e)}")
+            # Rollback: delete payment record
+            await db.delete("payments", filters={"id": payment_id})
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to create financial transaction: {str(e)}"
+            )
+        
         transaction_id = transaction['id']
         
         logger.info(f"Transaction created: {transaction_id}")
         
-        # Step 6: Update account balance
-        updated_accounts = await db.update(
-            "financial_accounts",
-            data={"current_balance": new_balance},
-            filters={"id": account_id}
+        # Step 6: Link transaction to payment
+        updated_payments = await db.update(
+            "payments",
+            data={"transaction_id": transaction_id},
+            filters={"id": payment_id}
         )
         
-        if not updated_accounts:
-            logger.error("Failed to update account balance - transaction was created but balance not updated!")
+        if not updated_payments:
+            logger.error("Failed to link transaction to payment")
+            # Note: Transaction and payment both exist but not linked
+            # Manual intervention may be needed
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Payment recorded but balance update failed. Please check transaction logs."
+                detail="Payment and transaction created but linking failed. Please contact support."
             )
         
-        logger.info(f"Account balance updated: {current_balance} -> {new_balance}")
-        logger.info(f"Payment completed successfully. Transaction ID: {transaction_id}")
+        # Step 7: Get calculated balance
+        calculated_balance = await FinanceService.get_account_balance(account_id)
+        
+        logger.info(
+            f"Payment completed successfully. Payment ID: {payment_id}, "
+            f"Transaction ID: {transaction_id}, Balance: {calculated_balance}"
+        )
         
         return PaymentResponse(
-            payment_id=transaction_id,
+            payment_id=payment_id,
             transaction_id=transaction_id,
-            account_id=account_id,
-            new_balance=new_balance,
+            enrollment_id=payment.enrollment_id,
+            amount=payment.amount,
+            payment_mode=payment.payment_mode,
+            account=account_name,
+            calculated_balance=float(calculated_balance),
             message=f"Payment of ₹{payment.amount} recorded successfully for {student_name}"
         )
         
@@ -176,11 +246,13 @@ async def list_payment_transactions(
     List recent payment transactions
     """
     try:
+        # Get REVENUE transactions with STUDENT_FEES category
         transactions = await db.select(
             "financial_transactions",
             filters={
-                "transaction_type": "INFLOW",
-                "category": "FEE_COLLECTION"
+                "transaction_type": "REVENUE",
+                "category": "STUDENT_FEES",
+                "status": "ACTIVE"
             },
             order_by="created_at.desc",
             limit=limit
@@ -197,3 +269,98 @@ async def list_payment_transactions(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list transactions: {str(e)}"
         )
+
+
+@router.post("/{payment_id}/void")
+async def void_payment(
+    payment_id: str,
+    reason: str = "Payment voided by administrator",
+    current_user: dict = Depends(require_admin)
+):
+    """
+    Void a payment (soft delete with audit trail)
+    
+    This will:
+    1. Mark payment as VOIDED
+    2. Void the linked financial transaction
+    3. Update ledger balance automatically
+    
+    **Note:** This does not return money - use refund for actual refunds
+    """
+    try:
+        logger.info(f"Voiding payment {payment_id}")
+        
+        # Step 1: Get payment record
+        payments = await db.select(
+            "payments",
+            filters={"id": payment_id}
+        )
+        
+        if not payments:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Payment {payment_id} not found"
+            )
+        
+        payment = payments[0]
+        
+        # Check if already voided
+        if payment.get('status') == 'VOIDED':
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Payment {payment_id} is already voided"
+            )
+        
+        transaction_id = payment.get('transaction_id')
+        
+        if not transaction_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Payment {payment_id} has no linked transaction"
+            )
+        
+        # Step 2: Void the financial transaction
+        try:
+            await FinanceService.void_transaction(
+                transaction_id=transaction_id,
+                voided_by=current_user.get('email') or current_user.get('id'),
+                reason=reason
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+        
+        # Step 3: Update payment status to VOIDED
+        updated_payments = await db.update(
+            "payments",
+            data={
+                "status": "VOIDED",
+                "notes": f"{payment.get('notes', '') or ''}\n[VOIDED: {reason}]".strip()
+            },
+            filters={"id": payment_id}
+        )
+        
+        if not updated_payments:
+            logger.warning(f"Could not update payment status to VOIDED: {payment_id}")
+            # Transaction is voided, which is the critical part
+        
+        logger.info(f"Payment {payment_id} voided successfully")
+        
+        return {
+            "message": "Payment voided successfully",
+            "payment_id": payment_id,
+            "transaction_id": transaction_id,
+            "status": "VOIDED"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to void payment: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to void payment: {str(e)}"
+        )
+

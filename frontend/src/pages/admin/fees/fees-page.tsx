@@ -91,12 +91,13 @@ export default function FeesPage() {
       if (enrollError) throw enrollError
       setEnrollments(enrollmentsData || [])
 
-      // Load fee transactions (INFLOW type, category = 'FEE_COLLECTION')
+      // Load fee transactions (REVENUE type with STUDENT_FEES category, plus legacy INFLOW)
       const { data: transactionsData, error: transactionsError } = await db
         .from('financial_transactions')
         .select('*')
-        .eq('transaction_type', 'INFLOW')
-        .eq('category', 'FEE_COLLECTION')
+        .in('transaction_type', ['REVENUE', 'INFLOW'])  // Support both for transition
+        .in('category', ['STUDENT_FEES', 'FEE_COLLECTION'])  // Support both category names
+        .eq('status', 'ACTIVE')  // Only show ACTIVE transactions
         .order('transaction_date', { ascending: false })
 
       if (transactionsError) throw transactionsError
@@ -127,6 +128,13 @@ export default function FeesPage() {
         return
       }
 
+      // Get ZendBX token from localStorage
+      const token = localStorage.getItem('zendbx_token')
+      if (!token) {
+        setError('Authentication required. Please log in.')
+        return
+      }
+
       // Prepare payment request for backend API
       const paymentRequest = {
         enrollment_id: selectedStudent,
@@ -137,13 +145,14 @@ export default function FeesPage() {
         notes: notes || null
       }
 
-      console.log('?? Creating payment via backend API:', paymentRequest)
+      console.log('🚀 Creating payment via backend API:', paymentRequest)
 
       // Call backend API
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(paymentRequest),
       })
@@ -224,7 +233,7 @@ export default function FeesPage() {
   }
 
   const handleDeleteTransaction = async (transactionId: string) => {
-    if (!confirm('Are you sure you want to delete this payment record?')) {
+    if (!confirm('Are you sure you want to void this payment record? This action creates an audit trail.')) {
       return
     }
 
@@ -232,19 +241,70 @@ export default function FeesPage() {
       setSaving(true)
       setError('')
 
-      const { error: deleteError } = await db
-        .from('financial_transactions')
-        .delete()
-        .eq('id', transactionId)
+      // Get ZendBX token from localStorage
+      const token = localStorage.getItem('zendbx_token')
+      if (!token) {
+        setError('Authentication required. Please log in.')
+        setSaving(false)
+        return
+      }
 
-      if (deleteError) throw deleteError
+      // Find the payment record linked to this transaction
+      const { data: payments, error: paymentsError } = await db
+        .from('payments')
+        .select('*')
+        .eq('transaction_id', transactionId)
 
-      setSuccess('Payment deleted successfully!')
+      if (paymentsError) throw paymentsError
+
+      if (payments && payments.length > 0) {
+        const payment = payments[0]
+        
+        // Use the void payment endpoint
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/${payment.id}/void`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            reason: 'Payment voided by administrator'
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.detail || 'Failed to void payment')
+        }
+
+        setSuccess('Payment voided successfully!')
+      } else {
+        // Legacy transaction without payment record - void the transaction directly
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/finance/transactions/${transactionId}/void`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            voided_by: 'admin',
+            reason: 'Transaction voided by administrator'
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.detail || 'Failed to void transaction')
+        }
+
+        setSuccess('Transaction voided successfully!')
+      }
+
       await loadData()
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
-      console.error('Error deleting payment:', err)
-      setError(err.message || 'Failed to delete payment')
+      console.error('Error voiding payment:', err)
+      setError(err.message || 'Failed to void payment')
     } finally {
       setSaving(false)
     }

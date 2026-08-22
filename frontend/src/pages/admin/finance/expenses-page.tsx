@@ -78,27 +78,53 @@ export default function ExpensesPage() {
   const [filterPaymentMode, setFilterPaymentMode] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
 
-  // Common expense categories
-  const expenseCategories = [
-    'Rent',
-    'Utilities',
-    'Salaries',
-    'Art Supplies',
-    'Equipment',
-    'Marketing',
-    'Maintenance',
-    'Office Supplies',
-    'Software/Subscriptions',
-    'Transportation',
-    'Food & Beverages',
-    'Professional Services',
-    'Insurance',
-    'Other'
-  ]
+  // Categories loaded from API
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
 
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    // Load categories when account type changes
+    loadCategories()
+  }, [accountType])
+
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true)
+      
+      // Get ZendBX token from localStorage
+      const token = localStorage.getItem('zendbx_token')
+      if (!token) {
+        console.error('No authentication token found')
+        setAvailableCategories([])
+        setLoadingCategories(false)
+        return
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/finance/categories?account_type=${accountType}&transaction_type=EXPENSE`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      )
+      
+      if (!response.ok) throw new Error('Failed to load categories')
+      
+      const categories = await response.json()
+      setAvailableCategories(categories.map((cat: any) => cat.code))
+    } catch (err: any) {
+      console.error('Error loading categories:', err)
+      // Fallback to empty array, user will see no options
+      setAvailableCategories([])
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -148,88 +174,40 @@ export default function ExpensesPage() {
         return
       }
 
-      // Find the account based on account type and payment mode
-      const account = accounts.find(
-        (acc) => acc.account_type === accountType && acc.account_mode === paymentMode
-      )
-
-      if (!account) {
-        setError(`Financial account for ${accountType} - ${paymentMode} not found.`)
+      // Get ZendBX token from localStorage
+      const token = localStorage.getItem('zendbx_token')
+      if (!token) {
+        setError('Authentication required. Please log in.')
         return
       }
 
-      // Calculate new balance (subtract expense)
-      const newBalance = account.current_balance - amountNum
-
-      // Step 1: Create financial transaction (EXPENSE type)
-      const transactionResponse = await fetch(`${API_URL}/api/expenses/transactions`, {
+      // Call new unified API
+      const response = await fetch(`${API_URL}/api/expenses/expenses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          account_id: account.id,
-          transaction_type: 'EXPENSE',
-          amount: amountNum,
-          balance_after: newBalance,
-          category: category,
-          description: `${category}${vendorName ? ' - ' + vendorName : ''}: ${description}`,
-          reference_type: 'EXPENSE',
-          transaction_date: expenseDate,
-        }),
-      })
-
-      if (!transactionResponse.ok) {
-        const errorData = await transactionResponse.json()
-        throw new Error(errorData.detail || 'Failed to create transaction')
-      }
-
-      const transactionData = await transactionResponse.json()
-      const transactionId = transactionData[0]?.id
-
-      // Step 2: Create expense record
-      const expenseResponse = await fetch(`${API_URL}/api/expenses/expenses`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          account_id: account.id,
-          category: category,
+          account_type: accountType,
+          account_mode: paymentMode,
+          category_code: category,
           amount: amountNum,
           expense_date: expenseDate,
           vendor_name: vendorName || null,
           description: description,
           receipt_url: null,
-          payment_mode: paymentMode,
-          status: 'APPROVED',
-          transaction_id: transactionId,
         }),
       })
 
-      if (!expenseResponse.ok) {
-        const errorData = await expenseResponse.json()
+      if (!response.ok) {
+        const errorData = await response.json()
         throw new Error(errorData.detail || 'Failed to create expense')
       }
 
-      // Step 3: Update account balance
-      const balanceResponse = await fetch(`${API_URL}/api/expenses/accounts/balance`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          account_id: account.id,
-          new_balance: newBalance,
-        }),
-      })
+      const result = await response.json()
 
-      if (!balanceResponse.ok) {
-        const errorData = await balanceResponse.json()
-        throw new Error(errorData.detail || 'Failed to update account balance')
-      }
-
-      setSuccess('Expense added successfully!')
+      setSuccess(`Expense created successfully! New balance: ₹${result.calculated_balance?.toFixed(2) || 'N/A'}`)
       
       // Reset form
       setAccountType('OPEX')
@@ -244,7 +222,7 @@ export default function ExpensesPage() {
       // Reload data
       await loadData()
 
-      setTimeout(() => setSuccess(''), 3000)
+      setTimeout(() => setSuccess(''), 5000)
     } catch (err: any) {
       console.error('Error adding expense:', err)
       setError(err.message || 'Failed to add expense')
@@ -315,67 +293,40 @@ export default function ExpensesPage() {
       setShowDeleteConfirm(false)
       setError('')
 
-      // Step 1: Get the expense details before deleting
-      const { data: expenseDataArray, error: fetchError } = await db
-        .from('expenses')
-        .select('*')
-        .eq('id', expenseToDelete)
-
-      if (fetchError) throw fetchError
-      if (!expenseDataArray || expenseDataArray.length === 0) throw new Error('Expense not found')
-      
-      const expenseData = expenseDataArray[0]
-
-      // Step 2: Get the account details
-      const { data: accountDataArray, error: accountError } = await db
-        .from('financial_accounts')
-        .select('*')
-        .eq('id', expenseData.account_id)
-
-      if (accountError) throw accountError
-      if (!accountDataArray || accountDataArray.length === 0) throw new Error('Account not found')
-      
-      const accountData = accountDataArray[0]
-
-      // Step 3: Calculate new balance (add back the expense amount since we're reversing the deduction)
-      const newBalance = accountData.current_balance + expenseData.amount
-
-      // Step 4: Delete the expense
-      const { error: deleteError } = await db
-        .from('expenses')
-        .delete()
-        .eq('id', expenseToDelete)
-
-      if (deleteError) throw deleteError
-
-      // Step 5: Update the account balance
-      const { error: balanceError } = await db
-        .from('financial_accounts')
-        .update({ current_balance: newBalance })
-        .eq('id', expenseData.account_id)
-
-      if (balanceError) throw balanceError
-
-      // Step 6: Delete the associated transaction if it exists
-      if (expenseData.transaction_id) {
-        const { error: transactionError } = await db
-          .from('financial_transactions')
-          .delete()
-          .eq('id', expenseData.transaction_id)
-
-        if (transactionError) {
-          console.warn('Failed to delete associated transaction:', transactionError)
-          // Don't throw error here as the main expense is already deleted
-        }
+      // Get ZendBX token from localStorage
+      const token = localStorage.getItem('zendbx_token')
+      if (!token) {
+        setError('Authentication required. Please log in.')
+        setSaving(false)
+        return
       }
 
-      setSuccess(`Expense deleted successfully! Account balance updated to ₹${newBalance.toFixed(2)}`)
+      // Use void endpoint instead of hard delete
+      const response = await fetch(`${API_URL}/api/expenses/expenses/${expenseToDelete}/void`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          reason: 'Expense voided by administrator'
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to void expense')
+      }
+
+      const result = await response.json()
+
+      setSuccess(`Expense voided successfully!`)
       setExpenseToDelete(null)
       await loadData()
       setTimeout(() => setSuccess(''), 5000)
     } catch (err: any) {
-      console.error('Error deleting expense:', err)
-      setError(err.message || 'Failed to delete expense')
+      console.error('Error voiding expense:', err)
+      setError(err.message || 'Failed to void expense')
     } finally {
       setSaving(false)
     }
@@ -514,13 +465,21 @@ export default function ExpensesPage() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                disabled={loadingCategories}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent disabled:opacity-50"
               >
-                <option value="">Select Category</option>
-                {expenseCategories.map((cat) => (
+                <option value="">
+                  {loadingCategories ? 'Loading categories...' : 'Select Category'}
+                </option>
+                {availableCategories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
+              {availableCategories.length === 0 && !loadingCategories && (
+                <p className="text-xs text-red-500 mt-1">
+                  No categories available for {accountType} expenses
+                </p>
+              )}
             </div>
 
             {/* Amount */}
@@ -713,7 +672,7 @@ export default function ExpensesPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
             >
               <option value="all">All Categories</option>
-              {expenseCategories.map((cat) => (
+              {availableCategories.map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
@@ -805,7 +764,7 @@ export default function ExpensesPage() {
                             onChange={(e) => setEditData({ ...editData, category: e.target.value })}
                             className="text-sm px-2 py-1 border rounded"
                           >
-                            {expenseCategories.map((cat) => (
+                            {availableCategories.map((cat) => (
                               <option key={cat} value={cat}>{cat}</option>
                             ))}
                           </select>
@@ -1015,9 +974,9 @@ export default function ExpensesPage() {
           setExpenseToDelete(null)
         }}
         onConfirm={confirmDeleteExpense}
-        title="Delete Expense?"
-        message="Are you sure you want to delete this expense? This will also adjust the account balance."
-        confirmText="Delete"
+        title="Void Expense?"
+        message="Are you sure you want to void this expense? The expense will be marked as voided and the ledger balance will be adjusted. This action creates an audit trail."
+        confirmText="Void Expense"
         variant="danger"
         loading={saving}
       />

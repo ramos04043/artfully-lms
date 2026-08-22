@@ -30,6 +30,7 @@ import CapexPage from '@/pages/admin/finance/capex-page'
 import OpexPage from '@/pages/admin/finance/opex-page'
 import ExpensesPage from '@/pages/admin/finance/expenses-page'
 import TransactionsPage from '@/pages/admin/finance/transactions-page'
+import ManualRevenuePage from '@/pages/admin/finance/manual-revenue-page'
 import ReportsPage from '@/pages/admin/reports/reports-page'
 import NotificationsPage from '@/pages/admin/notifications/notifications-page'
 import StaffManagementPage from '@/pages/admin/staff/staff-management-page'
@@ -109,6 +110,7 @@ function App() {
                   <Route path="/finance/opex" element={<OpexPage />} />
                   <Route path="/finance/expenses" element={<ExpensesPage />} />
                   <Route path="/finance/transactions" element={<TransactionsPage />} />
+                  <Route path="/finance/revenue" element={<ManualRevenuePage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/staff" element={<StaffManagementPage />} />

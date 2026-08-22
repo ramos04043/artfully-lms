@@ -60,16 +60,43 @@ export default function FinanceOverviewPage() {
       setLoading(true)
       setError('')
 
+      // Get ZendBX token from localStorage
+      const token = localStorage.getItem('zendbx_token')
+      if (!token) {
+        setError('Authentication required. Please log in.')
+        setLoading(false)
+        return
+      }
+
       // Load accounts and transactions in parallel for faster loading
       const [accountsResult, transactionsResult] = await Promise.all([
-        db.from('financial_accounts').select('*').eq('is_active', true).order('account_type', { ascending: true }),
-        db.from('financial_transactions').select('*').order('created_at', { ascending: false }).limit(10)
+        fetch(`${import.meta.env.VITE_API_URL}/api/finance/accounts/balances`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+          .then(res => res.ok ? res.json() : Promise.reject(res.statusText)),
+        db.from('financial_transactions')
+          .select('*')
+          .eq('status', 'ACTIVE')  // Only show ACTIVE transactions
+          .order('created_at', { ascending: false })
+          .limit(10)
       ])
 
-      if (accountsResult.error) throw accountsResult.error
+      // Convert account balances API response to format expected by component
+      const accountsData = accountsResult.map((acc: any) => ({
+        id: acc.id,
+        account_type: acc.account_type,
+        account_mode: acc.account_mode,
+        account_name: acc.account_name,
+        opening_balance: acc.opening_balance,
+        current_balance: acc.calculated_balance,  // Use calculated balance
+        is_active: acc.is_active
+      }))
+
       if (transactionsResult.error) throw transactionsResult.error
 
-      setAccounts(accountsResult.data || [])
+      setAccounts(accountsData || [])
       setRecentTransactions(transactionsResult.data || [])
     } catch (err: any) {
       console.error('Error loading financial data:', err)
@@ -98,60 +125,40 @@ export default function FinanceOverviewPage() {
       setShowDeleteConfirm(false)
       setError('')
 
-      console.log('🗑️ Deleting transaction:', transactionToDelete)
+      console.log('🗑️ Voiding transaction:', transactionToDelete)
 
-      // Get transaction details before deletion
-      const { data: transactionData, error: fetchError } = await db
-        .from('financial_transactions')
-        .select('*')
-        .eq('id', transactionToDelete)
+      // Get ZendBX token from localStorage
+      const token = localStorage.getItem('zendbx_token')
+      if (!token) {
+        throw new Error('Authentication required')
+      }
 
-      if (fetchError) throw fetchError
-      if (!transactionData || transactionData.length === 0) throw new Error('Transaction not found')
+      // Use the void endpoint instead of hard delete
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/finance/transactions/${transactionToDelete}/void`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          voided_by: 'admin',  // TODO: Get from auth context
+          reason: 'Transaction voided by administrator'
+        }),
+      })
 
-      const transaction = transactionData[0]
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to void transaction')
+      }
 
-      // Get account details
-      const { data: accountData, error: accountError } = await db
-        .from('financial_accounts')
-        .select('*')
-        .eq('id', transaction.account_id)
-
-      if (accountError) throw accountError
-      if (!accountData || accountData.length === 0) throw new Error('Account not found')
-
-      const account = accountData[0]
-
-      // Calculate new balance (reverse the transaction)
-      const isInflow = transaction.transaction_type === 'INFLOW'
-      const newBalance = isInflow 
-        ? account.current_balance - transaction.amount  // Remove inflow
-        : account.current_balance + transaction.amount  // Add back outflow
-
-      // Delete transaction
-      const { error: deleteError } = await db
-        .from('financial_transactions')
-        .delete()
-        .eq('id', transactionToDelete)
-
-      if (deleteError) throw deleteError
-
-      // Update account balance
-      const { error: balanceError } = await db
-        .from('financial_accounts')
-        .update({ current_balance: newBalance })
-        .eq('id', transaction.account_id)
-
-      if (balanceError) throw balanceError
-
-      console.log('✅ Transaction deleted successfully')
-      setSuccess(`Transaction deleted successfully! Account balance updated to ₹${newBalance.toFixed(2)}`)
+      console.log('✅ Transaction voided successfully')
+      setSuccess(`Transaction voided successfully!`)
       setTransactionToDelete(null)
       await loadData()
       setTimeout(() => setSuccess(''), 5000)
     } catch (err: any) {
-      console.error('Error deleting transaction:', err)
-      setError(err.message || 'Failed to delete transaction')
+      console.error('Error voiding transaction:', err)
+      setError(err.message || 'Failed to void transaction')
     } finally {
       setDeleting(false)
     }
@@ -265,6 +272,21 @@ export default function FinanceOverviewPage() {
         
         {/* Finance Sub-Pages Navigation */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+          <button
+            onClick={() => navigate('/admin/finance/revenue')}
+            className="bg-white hover:bg-gray-50 rounded-lg border border-gray-200 p-4 text-left transition-all hover:shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <ArrowUpCircle className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Revenue</p>
+                <p className="text-xs text-gray-500">Manual entry</p>
+              </div>
+            </div>
+          </button>
+
           <button
             onClick={() => navigate('/admin/finance/expenses')}
             className="bg-white hover:bg-gray-50 rounded-lg border border-gray-200 p-4 text-left transition-all hover:shadow-md"
@@ -444,7 +466,12 @@ export default function FinanceOverviewPage() {
                 ) : (
                   recentTransactions.map((transaction) => {
                     const account = getAccountInfo(transaction.account_id)
-                    const isInflow = transaction.transaction_type === 'INFLOW'
+                    const isInflow = ['REVENUE', 'INFLOW'].includes(transaction.transaction_type)
+                    
+                    // Display type mapping for transition period
+                    const displayType = transaction.transaction_type === 'INFLOW' ? 'REVENUE' :
+                                       transaction.transaction_type === 'OUTFLOW' ? 'EXPENSE' :
+                                       transaction.transaction_type
 
                     return (
                       <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
@@ -477,7 +504,7 @@ export default function FinanceOverviewPage() {
                             ) : (
                               <ArrowDownCircle className="w-3 h-3" />
                             )}
-                            {transaction.transaction_type}
+                            {displayType}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -539,9 +566,9 @@ export default function FinanceOverviewPage() {
           setTransactionToDelete(null)
         }}
         onConfirm={confirmDeleteTransaction}
-        title="Delete Transaction?"
-        message="Are you sure you want to delete this transaction? This will also adjust the account balance. This action cannot be undone."
-        confirmText="Delete"
+        title="Void Transaction?"
+        message="Are you sure you want to void this transaction? The transaction will be marked as voided and excluded from balance calculations. The original transaction remains in the database for audit purposes."
+        confirmText="Void Transaction"
         variant="danger"
         loading={deleting}
       />
