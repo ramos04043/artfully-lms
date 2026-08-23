@@ -140,7 +140,10 @@ export default function ExpensesPage() {
         .select('*')
         .eq('is_active', true)
 
-      if (accountsError) throw accountsError
+      if (accountsError) {
+        console.error('Error loading accounts:', accountsError)
+        throw accountsError
+      }
       setAccounts((accountsData || []) as FinancialAccount[])
 
       // Load expenses
@@ -149,11 +152,27 @@ export default function ExpensesPage() {
         .select('*')
         .order('expense_date', { ascending: false })
 
-      if (expensesError) throw expensesError
+      if (expensesError) {
+        console.error('Error loading expenses:', expensesError)
+        throw expensesError
+      }
+      
+      console.log('Loaded expenses count:', expensesData?.length || 0)
+      
+      // Debug: Check if voided_at field exists
+      if (expensesData && expensesData.length > 0) {
+        const sampleExpense = expensesData[0]
+        console.log('Sample expense fields:', Object.keys(sampleExpense))
+        console.log('Has voided_at field?', 'voided_at' in sampleExpense)
+        const voidedCount = expensesData.filter(e => e.voided_at).length
+        console.log(`Found ${voidedCount} voided expenses out of ${expensesData.length}`)
+      }
+      
       setExpenses((expensesData || []) as Expense[])
     } catch (err: any) {
       console.error('Error loading data:', err)
       setError(err.message || 'Failed to load data')
+      throw err  // Re-throw to let caller know there was an error
     } finally {
       setLoading(false)
     }
@@ -204,15 +223,14 @@ export default function ExpensesPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to create expense')
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
+        console.error('Backend error response:', errorData)
+        throw new Error(errorData.detail || `Server error: ${response.status}`)
       }
 
       const result = await response.json()
 
-      setSuccess(`Expense created successfully! New balance: ₹${result.calculated_balance?.toFixed(2) || 'N/A'}`)
-      
-      // Reset form
+      // Reset form first
       setAccountType('OPEX')
       setPaymentMode('BANK')
       setCategory('')
@@ -222,8 +240,18 @@ export default function ExpensesPage() {
       setDescription('')
       setShowAddForm(false)
 
-      // Reload data
-      await loadData()
+      setSuccess('Expense created successfully!')
+
+      // Small delay to ensure database has updated, then reload
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      try {
+        await loadData()
+        console.log('Data reloaded successfully after expense creation')
+      } catch (reloadErr) {
+        console.error('Error reloading after create:', reloadErr)
+        setError('Expense created but failed to refresh. Please refresh the page.')
+      }
 
       setTimeout(() => setSuccess(''), 5000)
     } catch (err: any) {
@@ -331,8 +359,9 @@ export default function ExpensesPage() {
       console.error('Error voiding expense:', err)
       const errorMessage = err.message || 'Failed to void expense'
       
-      // If already voided, reload data to sync UI
+      // If already voided, reload data to sync UI and clear the pending delete
       if (errorMessage.includes('already voided')) {
+        setExpenseToDelete(null)
         setError('This expense was already voided. Refreshing data...')
         await loadData()
         setTimeout(() => setError(''), 3000)
@@ -354,6 +383,7 @@ export default function ExpensesPage() {
   const filteredExpenses = expenses.filter((expense) => {
     // CRITICAL: Exclude voided expenses from display
     if (expense.voided_at) {
+      console.log('Filtering out voided expense:', expense.id, 'voided at:', expense.voided_at)
       return false
     }
 
@@ -371,6 +401,8 @@ export default function ExpensesPage() {
 
     return matchesSearch && matchesAccountType && matchesPaymentMode && matchesCategory
   })
+  
+  console.log(`Filtered expenses: ${filteredExpenses.length} (from ${expenses.length} total, ${expenses.length - filteredExpenses.length} filtered out)`)
 
   // Calculate stats
   const stats = {

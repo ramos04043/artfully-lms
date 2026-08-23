@@ -36,7 +36,7 @@ interface Task {
 
 // Hardcoded staff members for task assignment
 const STAFF_MEMBERS = [
-  { id: 'sajith', name: 'Sajith' },
+  { id: 'sajeeth', name: 'Sajeeth' },
   { id: 'akshaya', name: 'Akshaya' },
 ]
 

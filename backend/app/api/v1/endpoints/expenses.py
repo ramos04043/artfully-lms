@@ -137,13 +137,18 @@ async def create_expense(
         
         logger.info(f"Expense created successfully. Balance: {calculated_balance}")
         
+        # Return the expense record (use the first updated record if available, otherwise the original)
+        expense_result = expense_record
+        if updated_expenses and isinstance(updated_expenses, list) and len(updated_expenses) > 0:
+            expense_result = updated_expenses[0]
+        
         return {
             "message": "Expense created successfully",
             "expense_id": expense_id,
             "transaction_id": transaction_id,
             "account": account_name,
             "calculated_balance": float(calculated_balance),
-            "expense": updated_expenses[0] if updated_expenses else expense_record
+            "expense": expense_result
         }
         
     except HTTPException:

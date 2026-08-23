@@ -34,13 +34,14 @@ export default function CapEXPage() {
         .gte('transaction_date', yearStart)
         .lte('transaction_date', yearEnd)
 
-      const totalYearly = expenses?.reduce((sum, e) => sum + Math.abs(e.amount), 0) || 0
+      // Keep amounts as negative (expenses are outflows)
+      const totalYearly = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0
 
       // Group by category
       const categoryMap = new Map<string, number>()
       expenses?.forEach(e => {
         const cat = e.category
-        categoryMap.set(cat, (categoryMap.get(cat) || 0) + Math.abs(e.amount))
+        categoryMap.set(cat, (categoryMap.get(cat) || 0) + e.amount)
       })
 
       const byCategory = Array.from(categoryMap.entries()).map(([category, amount]) => ({
@@ -80,12 +81,18 @@ export default function CapEXPage() {
       </div>
 
       {/* Total Card */}
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white mb-6">
+      <div className={`rounded-lg p-6 text-white mb-6 ${
+        capex.totalYearly < 0 
+          ? 'bg-gradient-to-br from-red-500 to-red-600' 
+          : 'bg-gradient-to-br from-blue-500 to-blue-600'
+      }`}>
         <div className="flex items-center gap-3 mb-2">
           <DollarSign className="w-8 h-8" />
           <p className="text-lg opacity-90">Total Yearly CapEx</p>
         </div>
-        <p className="text-4xl font-bold">₹{capex.totalYearly.toLocaleString()}</p>
+        <p className={`text-4xl font-bold ${capex.totalYearly < 0 ? 'text-white' : ''}`}>
+          ₹{capex.totalYearly.toLocaleString()}
+        </p>
         <p className="text-sm opacity-75 mt-2">Capital expenses this year</p>
       </div>
 
@@ -105,16 +112,20 @@ export default function CapEXPage() {
         ) : (
           <div className="space-y-4">
             {capex.byCategory.map((cat, index) => {
-              const percentage = capex.totalYearly > 0 ? (cat.amount / capex.totalYearly) * 100 : 0
+              const percentage = capex.totalYearly !== 0 ? Math.abs((cat.amount / capex.totalYearly) * 100) : 0
+              const isNegative = cat.amount < 0
+              
               return (
                 <div key={index}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">{cat.category}</span>
-                    <span className="text-gray-600">₹{cat.amount.toLocaleString()}</span>
+                    <span className={`font-semibold ${isNegative ? 'text-red-600' : 'text-gray-900'}`}>
+                      ₹{cat.amount.toLocaleString()}
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div
-                      className="bg-blue-600 h-3 rounded-full transition-all"
+                      className={`h-3 rounded-full transition-all ${isNegative ? 'bg-red-600' : 'bg-blue-600'}`}
                       style={{ width: `${percentage}%` }}
                     />
                   </div>

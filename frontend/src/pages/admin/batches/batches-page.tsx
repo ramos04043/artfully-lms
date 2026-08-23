@@ -29,6 +29,17 @@ interface BatchStudent {
   student_last_name: string
   status: string
   batch_ids: string[]
+  student_grade: string  // To identify FOUNDATION vs ADVANCED
+}
+
+interface AdvancedStudent {
+  id: string
+  student_id: string
+  student_first_name: string
+  student_last_name: string
+  status: string
+  days: string[]  // Days they attend (stored in student_school_name field)
+  grade: string
 }
 
 export default function BatchesPage() {
@@ -40,12 +51,20 @@ export default function BatchesPage() {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   
+  // Tab state for Foundation vs Advanced
+  const [activeTab, setActiveTab] = useState<'foundation' | 'advanced'>('foundation')
+  
   // Student view states
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null)
   const [batchStudents, setBatchStudents] = useState<BatchStudent[]>([])
+  const [advancedStudents, setAdvancedStudents] = useState<AdvancedStudent[]>([])
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [allBatches, setAllBatches] = useState<Batch[]>([])
   const [reassigningStudent, setReassigningStudent] = useState<string | null>(null)
+  
+  // Advanced students modal
+  const [showAdvancedModal, setShowAdvancedModal] = useState(false)
+  const [selectedDay, setSelectedDay] = useState<string>('')
   
   // Confirmation dialog state
   const [showAssignConfirm, setShowAssignConfirm] = useState(false)
@@ -70,7 +89,10 @@ export default function BatchesPage() {
   useEffect(() => {
     loadProgrammes()
     loadBatches()
-  }, [])
+    if (activeTab === 'advanced') {
+      loadAdvancedStudents()
+    }
+  }, [activeTab])
 
   const loadProgrammes = async () => {
     try {
@@ -145,6 +167,44 @@ export default function BatchesPage() {
     } catch (err: any) {
       console.error('Error loading batches:', err)
       setError(err.message || 'Failed to load batches')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadAdvancedStudents = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      // Load all ADVANCED students
+      const { data: enrollments, error } = await db
+        .from('enrollments')
+        .select('*')
+        .eq('status', 'ACTIVE')
+
+      if (error) {
+        console.error('Error loading advanced students:', error)
+        throw error
+      }
+
+      // Filter for ADVANCED students (student_grade starts with "ADVANCED|")
+      const advancedList: AdvancedStudent[] = (enrollments || [])
+        .filter(e => e.student_grade && e.student_grade.startsWith('ADVANCED|'))
+        .map(e => ({
+          id: e.id,
+          student_id: e.student_id,
+          student_first_name: e.student_first_name,
+          student_last_name: e.student_last_name,
+          status: e.status,
+          days: e.student_school_name ? e.student_school_name.split(',') : [],
+          grade: e.student_grade ? e.student_grade.split('|')[1] : '',
+        }))
+
+      setAdvancedStudents(advancedList)
+    } catch (err: any) {
+      console.error('Error loading advanced students:', err)
+      setError(err.message || 'Failed to load advanced students')
     } finally {
       setLoading(false)
     }
@@ -442,39 +502,90 @@ VALUES ('${finalBatchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Weekly Timetable</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Class Schedule & Students</h1>
             <p className="text-gray-600 mt-1">
-              View and manage batch schedules and capacity
+              Manage Foundation batches and Advanced students
             </p>
           </div>
-          <button 
-            onClick={() => setShowModal(true)}
-            className="bg-art-indigo hover:bg-art-indigo/90 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
+          {activeTab === 'foundation' && (
+            <button 
+              onClick={() => setShowModal(true)}
+              className="bg-art-indigo hover:bg-art-indigo/90 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Add Batch
+            </button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-4 border-b border-gray-200 mb-6">
+          <button
+            onClick={() => setActiveTab('foundation')}
+            className={`pb-3 px-4 font-medium transition-colors relative ${
+              activeTab === 'foundation'
+                ? 'text-art-indigo border-b-2 border-art-indigo'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
           >
-            <Plus className="w-5 h-5" />
-            Add Batch
+            Foundation Batches
+            <span className="ml-2 text-sm">({batches.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('advanced')}
+            className={`pb-3 px-4 font-medium transition-colors relative ${
+              activeTab === 'advanced'
+                ? 'text-art-indigo border-b-2 border-art-indigo'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Advanced Students
+            <span className="ml-2 text-sm">({advancedStudents.length})</span>
           </button>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="p-4 bg-white rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Total Batches</p>
-            <p className="text-2xl font-bold text-gray-900">{batches.length}</p>
+        {/* Summary Stats - Foundation */}
+        {activeTab === 'foundation' && (
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 mb-1">Total Batches</p>
+              <p className="text-2xl font-bold text-gray-900">{batches.length}</p>
+            </div>
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 mb-1">Total Capacity</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {batches.reduce((sum, b) => sum + b.max_capacity, 0)}
+              </p>
+            </div>
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 mb-1">Total Enrolled</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {batches.reduce((sum, b) => sum + b.enrolled_count, 0)}
+              </p>
+            </div>
           </div>
-          <div className="p-4 bg-white rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Total Capacity</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {batches.reduce((sum, b) => sum + b.max_capacity, 0)}
-            </p>
+        )}
+
+        {/* Summary Stats - Advanced */}
+        {activeTab === 'advanced' && (
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 mb-1">Active Students</p>
+              <p className="text-2xl font-bold text-gray-900">{advancedStudents.length}</p>
+            </div>
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 mb-1">Available Days</p>
+              <p className="text-2xl font-bold text-gray-900">6</p>
+              <p className="text-xs text-gray-500 mt-1">Mon, Wed-Sun</p>
+            </div>
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 mb-1">Total Sessions</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {advancedStudents.reduce((sum, s) => sum + s.days.length, 0)}
+              </p>
+            </div>
           </div>
-          <div className="p-4 bg-white rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Total Enrolled</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {batches.reduce((sum, b) => sum + b.enrolled_count, 0)}
-            </p>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Alerts */}
@@ -492,97 +603,192 @@ VALUES ('${finalBatchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'
         </div>
       )}
 
-      {/* Weekly Timetable */}
-      <div className="space-y-6">
-        {weekdays.map((weekday) => {
-          const dayBatches = groupedBatches[weekday] || []
-          if (dayBatches.length === 0) return null
+      {/* Weekly Timetable - Foundation Batches */}
+      {activeTab === 'foundation' && (
+        <>
+          <div className="space-y-6">
+            {weekdays.map((weekday) => {
+              const dayBatches = groupedBatches[weekday] || []
+              if (dayBatches.length === 0) return null
 
-          return (
-            <div key={weekday} className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                {weekday}
-                <span className="ml-3 text-sm font-normal text-gray-600">
-                  ({dayBatches.length} {dayBatches.length === 1 ? 'batch' : 'batches'})
-                </span>
-              </h2>
+              return (
+                <div key={weekday} className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    {weekday}
+                    <span className="ml-3 text-sm font-normal text-gray-600">
+                      ({dayBatches.length} {dayBatches.length === 1 ? 'batch' : 'batches'})
+                    </span>
+                  </h2>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {dayBatches.map((batch) => (
-                  <div
-                    key={batch.id}
-                    onClick={() => handleBatchClick(batch)}
-                    className="p-4 border-2 border-gray-200 rounded-lg hover:shadow-md hover:border-art-indigo transition-all cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{batch.name}</h3>
-                        {batch.room_number && (
-                          <p className="text-sm text-gray-600">Room {batch.room_number}</p>
-                        )}
-                      </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          // Edit functionality can be added here
-                        }}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          {batch.start_time} - {batch.end_time}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="w-4 h-4 text-gray-600" />
-                        <span className="text-gray-900">
-                          {batch.enrolled_count}/{batch.max_capacity} enrolled
-                        </span>
-                      </div>
-
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {dayBatches.map((batch) => (
                       <div
-                        className={`mt-3 px-3 py-2 rounded-lg text-sm font-medium ${getCapacityColor(
-                          batch.remaining_capacity,
-                          batch.max_capacity
-                        )}`}
+                        key={batch.id}
+                        onClick={() => handleBatchClick(batch)}
+                        className="p-4 border-2 border-gray-200 rounded-lg hover:shadow-md hover:border-art-indigo transition-all cursor-pointer"
                       >
-                        {batch.remaining_capacity > 0
-                          ? `${batch.remaining_capacity} ${
-                              batch.remaining_capacity === 1 ? 'spot' : 'spots'
-                            } available`
-                          : 'Full'}
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{batch.name}</h3>
+                            {batch.room_number && (
+                              <p className="text-sm text-gray-600">Room {batch.room_number}</p>
+                            )}
+                          </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              // Edit functionality can be added here
+                            }}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {batch.start_time} - {batch.end_time}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-sm">
+                            <Users className="w-4 h-4 text-gray-600" />
+                            <span className="text-gray-900">
+                              {batch.enrolled_count}/{batch.max_capacity} enrolled
+                            </span>
+                          </div>
+
+                          <div
+                            className={`mt-3 px-3 py-2 rounded-lg text-sm font-medium ${getCapacityColor(
+                              batch.remaining_capacity,
+                              batch.max_capacity
+                            )}`}
+                          >
+                            {batch.remaining_capacity > 0
+                              ? `${batch.remaining_capacity} ${
+                                  batch.remaining_capacity === 1 ? 'spot' : 'spots'
+                                } available`
+                              : 'Full'}
+                          </div>
+                          
+                          <div className="text-xs text-gray-500 mt-2 text-center">
+                            Click to view students
+                          </div>
+                        </div>
                       </div>
-                      
-                      <div className="text-xs text-gray-500 mt-2 text-center">
-                        Click to view students
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {batches.length === 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+              <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No batches found
+              </h3>
+              <p className="text-gray-600 mb-6">Get started by creating your first batch</p>
+              <button className="inline-flex items-center gap-2 bg-art-indigo hover:bg-art-indigo/90 text-white px-6 py-3 rounded-lg transition-colors">
+                <Plus className="w-5 h-5" />
+                Create First Batch
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Advanced Students View */}
+      {activeTab === 'advanced' && (
+        <div className="space-y-6">
+          {/* Group by day */}
+          {['MONDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map((day) => {
+            const studentsForDay = advancedStudents.filter(s => s.days.includes(day))
+            if (studentsForDay.length === 0) return null
+
+            return (
+              <div key={day} className="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  {day}
+                  <span className="ml-3 text-sm font-normal text-gray-600">
+                    ({studentsForDay.length} {studentsForDay.length === 1 ? 'student' : 'students'})
+                  </span>
+                </h2>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {studentsForDay.map((student) => (
+                    <div
+                      key={student.id}
+                      className="p-4 border-2 border-purple-200 rounded-lg bg-purple-50/30"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center">
+                          <span className="text-purple-700 font-semibold text-lg">
+                            {student.student_first_name[0]}
+                            {student.student_last_name[0]}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">
+                            {student.student_first_name} {student.student_last_name}
+                          </p>
+                          <p className="text-sm text-gray-600">{student.student_id}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          <span className="text-gray-600">Grade:</span>{' '}
+                          <span className="font-medium text-gray-900">{student.grade || 'N/A'}</span>
+                        </div>
+
+                        <div className="text-sm">
+                          <span className="text-gray-600">Attending:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {student.days.map((d) => (
+                              <span
+                                key={d}
+                                className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium"
+                              >
+                                {d.slice(0, 3)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
+                              student.status === 'ACTIVE'
+                                ? 'bg-green-100 text-green-800'
+                                : student.status === 'PAUSED'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {student.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
 
-      {batches.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No batches found
-          </h3>
-          <p className="text-gray-600 mb-6">Get started by creating your first batch</p>
-          <button className="inline-flex items-center gap-2 bg-art-indigo hover:bg-art-indigo/90 text-white px-6 py-3 rounded-lg transition-colors">
-            <Plus className="w-5 h-5" />
-            Create First Batch
-          </button>
+          {advancedStudents.length === 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+              <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No advanced students found
+              </h3>
+              <p className="text-gray-600">Advanced students will appear here once enrolled</p>
+            </div>
+          )}
         </div>
       )}
 

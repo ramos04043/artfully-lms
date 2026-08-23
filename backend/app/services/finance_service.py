@@ -274,8 +274,10 @@ class FinanceService:
             
             logger.info(f"Update completed successfully")
             
-            if not updated or len(updated) == 0:
-                # Update succeeded but no data returned, fetch the updated record
+            # Handle different return types from db.update
+            updated_transaction = None
+            if not updated:
+                # No data returned, fetch the updated record
                 logger.info("No data returned from update, fetching updated transaction")
                 transactions = await db.select(
                     "financial_transactions",
@@ -284,8 +286,23 @@ class FinanceService:
                 if not transactions:
                     raise ValueError(f"Transaction {transaction_id} was voided but could not be retrieved")
                 updated_transaction = transactions[0]
-            else:
+            elif isinstance(updated, list) and len(updated) > 0:
+                # Returned as list
                 updated_transaction = updated[0]
+            elif isinstance(updated, dict):
+                # Returned as dict
+                updated_transaction = updated
+            else:
+                # Unexpected type, try to fetch
+                logger.warning(f"Unexpected update return type: {type(updated)}, fetching from DB")
+                transactions = await db.select(
+                    "financial_transactions",
+                    filters={"id": transaction_id}
+                )
+                if transactions:
+                    updated_transaction = transactions[0]
+                else:
+                    raise ValueError(f"Transaction {transaction_id} was voided but could not be retrieved")
             
             logger.info(
                 f"Transaction voided: {transaction_id} by {voided_by}, "
