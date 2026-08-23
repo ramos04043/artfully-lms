@@ -50,6 +50,9 @@ export default function EnrollmentPage() {
   // Selected programme and batches
   const [selectedProgramme, setSelectedProgramme] = useState('')
   const [selectedBatches, setSelectedBatches] = useState<string[]>([])
+  
+  // Advanced student days (all except Tuesday)
+  const [selectedDays, setSelectedDays] = useState<string[]>([])
 
   useEffect(() => {
     loadProgrammesAndBatches()
@@ -185,6 +188,11 @@ export default function EnrollmentPage() {
         throw new Error('Please select at least one batch for Foundation students')
       }
 
+      // Require day selection for Advanced students
+      if (classLevel === 'ADVANCED' && selectedDays.length === 0) {
+        throw new Error('Please select at least one day for Advanced students')
+      }
+
       // Generate student ID in format ART1001, ART1002, etc.
       // Get the highest existing student number from enrollments table
       const { data: existingEnrollments } = await db
@@ -229,7 +237,7 @@ export default function EnrollmentPage() {
         student_email: email || null,
         student_phone: phone || null,
         student_address: address || null,
-        student_school_name: schoolName || null,
+        student_school_name: classLevel === 'ADVANCED' ? selectedDays.join(',') : schoolName || null, // Store days in school_name for Advanced
         student_grade: `${classLevel}|${grade}`, // Store class level with grade
         parent_first_name: parentFirstName,
         parent_last_name: parentLastName || '',
@@ -608,14 +616,59 @@ export default function EnrollmentPage() {
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-8">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  Advanced Class
+                  Advanced Class - Select Days
                 </h2>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-sm text-purple-800">
-                    Advanced class students are not assigned to regular batches. 
-                    They will attend specialized advanced sessions.
-                  </p>
+                <p className="text-sm text-gray-600 mb-4">
+                  Select which days the student will attend advanced sessions. 
+                  <span className="font-medium text-purple-700"> Note: Tuesday is not available.</span>
+                </p>
+                
+                <div className="space-y-2">
+                  {['MONDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map((day) => {
+                    const isSelected = selectedDays.includes(day)
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedDays(selectedDays.filter(d => d !== day))
+                          } else {
+                            setSelectedDays([...selectedDays, day])
+                          }
+                        }}
+                        className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                          isSelected
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-900">{day}</span>
+                          {isSelected && (
+                            <CheckCircle className="w-5 h-5 text-purple-600" />
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
+
+                {/* Selected Days Summary */}
+                {selectedDays.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-900 mb-2">
+                      Selected Days ({selectedDays.length})
+                    </p>
+                    <div className="space-y-1">
+                      {selectedDays.map((day) => (
+                        <div key={day} className="text-sm text-gray-600">
+                          • {day}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -632,7 +685,7 @@ export default function EnrollmentPage() {
           </button>
           <button
             type="submit"
-            disabled={loading || (classLevel === 'FOUNDATION' && selectedBatches.length === 0)}
+            disabled={loading || (classLevel === 'FOUNDATION' && selectedBatches.length === 0) || (classLevel === 'ADVANCED' && selectedDays.length === 0)}
             className="px-6 py-3 bg-art-indigo hover:bg-art-indigo/90 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Save className="w-5 h-5" />

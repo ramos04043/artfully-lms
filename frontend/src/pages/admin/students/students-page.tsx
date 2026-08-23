@@ -13,6 +13,7 @@ interface Student {
   student_email: string | null
   student_phone: string | null
   student_grade: string | null
+  student_school_name: string | null
   status: string
   created_at: string
   paused_at: string | null
@@ -233,7 +234,7 @@ export default function StudentsPage() {
                     Student
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Batch
+                    Batch / Days
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -287,6 +288,27 @@ export default function StudentsPage() {
                     </td>
                     <td className="px-6 py-4">
                       {(() => {
+                        const classLevel = getClassLevel(student.student_grade)
+                        
+                        // For Advanced students, show selected days instead of batches
+                        if (classLevel === 'ADVANCED') {
+                          const days = student.student_school_name?.split(',') || []
+                          if (days.length === 0) {
+                            return <span className="text-sm text-gray-400">No days assigned</span>
+                          }
+                          return (
+                            <div className="space-y-1">
+                              <div className="text-xs text-purple-600 font-medium mb-1">Advanced Days:</div>
+                              {days.map((day, index) => (
+                                <div key={index} className="text-sm text-gray-900">
+                                  {day.trim()}
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        }
+                        
+                        // For Foundation students, show batches
                         const studentBatches = getStudentBatches(student.batch_ids || [])
                         if (studentBatches.length === 0) {
                           return <span className="text-sm text-gray-400">No batch assigned</span>
