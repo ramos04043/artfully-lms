@@ -12,6 +12,7 @@ interface Student {
   student_date_of_birth: string | null
   student_email: string | null
   student_phone: string | null
+  student_grade: string | null
   status: string
   created_at: string
   paused_at: string | null
@@ -75,6 +76,22 @@ export default function StudentsPage() {
   const getStudentBatches = (batchIds: string[]) => {
     if (!batchIds || batchIds.length === 0) return []
     return batches.filter(batch => batchIds.includes(batch.id))
+  }
+
+  // Extract class level from grade field (format: "FOUNDATION|Grade")
+  const getClassLevel = (grade: string | null): 'FOUNDATION' | 'ADVANCED' | null => {
+    if (!grade) return null
+    const parts = grade.split('|')
+    if (parts[0] === 'FOUNDATION' || parts[0] === 'ADVANCED') {
+      return parts[0] as 'FOUNDATION' | 'ADVANCED'
+    }
+    return null
+  }
+
+  const getClassLevelColor = (level: 'FOUNDATION' | 'ADVANCED' | null) => {
+    if (level === 'FOUNDATION') return 'bg-blue-100 text-blue-800 border-blue-200'
+    if (level === 'ADVANCED') return 'bg-purple-100 text-purple-800 border-purple-200'
+    return 'bg-gray-100 text-gray-600 border-gray-200'
   }
 
   const filteredStudents = students.filter((student) => {
@@ -244,8 +261,23 @@ export default function StudentsPage() {
                           </span>
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-gray-900 flex items-center gap-2">
                             {student.student_first_name} {student.student_last_name}
+                            {(() => {
+                              const classLevel = getClassLevel(student.student_grade)
+                              if (classLevel) {
+                                return (
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getClassLevelColor(
+                                      classLevel
+                                    )}`}
+                                  >
+                                    {classLevel}
+                                  </span>
+                                )
+                              }
+                              return null
+                            })()}
                           </div>
                           <div className="text-sm text-gray-500">
                             {student.student_id}

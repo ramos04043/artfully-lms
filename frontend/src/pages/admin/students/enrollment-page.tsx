@@ -39,6 +39,7 @@ export default function EnrollmentPage() {
   const [address, setAddress] = useState('')
   const [schoolName, setSchoolName] = useState('')
   const [grade, setGrade] = useState('')
+  const [classLevel, setClassLevel] = useState<'FOUNDATION' | 'ADVANCED'>('FOUNDATION')
   
   // Parent fields
   const [parentFirstName, setParentFirstName] = useState('')
@@ -179,8 +180,9 @@ export default function EnrollmentPage() {
         throw new Error('Please fill in all required fields')
       }
 
-      if (selectedBatches.length === 0) {
-        throw new Error('Please select at least one batch')
+      // Only require batch selection for Foundation students
+      if (classLevel === 'FOUNDATION' && selectedBatches.length === 0) {
+        throw new Error('Please select at least one batch for Foundation students')
       }
 
       // Generate student ID in format ART1001, ART1002, etc.
@@ -212,7 +214,8 @@ export default function EnrollmentPage() {
       console.log('Student data:', { firstName, studentId })
 
       // Convert batch IDs to array format for PostgreSQL
-      const batchIdsArray = selectedBatches
+      // Advanced students don't have batches
+      const batchIdsArray = classLevel === 'FOUNDATION' ? selectedBatches : []
 
       // Create enrollment in single table
       console.log('Inserting enrollment...')
@@ -227,7 +230,7 @@ export default function EnrollmentPage() {
         student_phone: phone || null,
         student_address: address || null,
         student_school_name: schoolName || null,
-        student_grade: grade || null,
+        student_grade: `${classLevel}|${grade}`, // Store class level with grade
         parent_first_name: parentFirstName,
         parent_last_name: parentLastName || '',
         parent_email: '',
@@ -428,6 +431,23 @@ export default function EnrollmentPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
                   />
                 </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Class Level <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={classLevel}
+                    onChange={(e) => setClassLevel(e.target.value as 'FOUNDATION' | 'ADVANCED')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  >
+                    <option value="FOUNDATION">Foundation</option>
+                    <option value="ADVANCED">Advanced</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Foundation: Beginner level | Advanced: Experienced level
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -490,15 +510,16 @@ export default function EnrollmentPage() {
             </div>
           </div>
 
-          {/* Right Column - Batch Selection */}
+          {/* Right Column - Batch Selection (only for Foundation) */}
           <div>
-            <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Select Batch Preferences
-              </h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Select preferred batch slots. Maximum 2 batches on different days.
-              </p>
+            {classLevel === 'FOUNDATION' ? (
+              <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-8">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Select Batch Preferences
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Select preferred batch slots. Maximum 2 batches on different days.
+                </p>
 
               {loadingBatches ? (
                 <div className="text-center py-8">
@@ -576,7 +597,7 @@ export default function EnrollmentPage() {
                       if (!batch) return null
                       return (
                         <div key={batchId} className="text-sm text-gray-600">
-                          � {batch.day_of_week} {batch.start_time} - {batch.end_time}
+                          • {batch.day_of_week} {batch.start_time} - {batch.end_time}
                         </div>
                       )
                     })}
@@ -584,6 +605,19 @@ export default function EnrollmentPage() {
                 </div>
               )}
             </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-8">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Advanced Class
+                </h2>
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <p className="text-sm text-purple-800">
+                    Advanced class students are not assigned to regular batches. 
+                    They will attend specialized advanced sessions.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -598,7 +632,7 @@ export default function EnrollmentPage() {
           </button>
           <button
             type="submit"
-            disabled={loading || selectedBatches.length === 0}
+            disabled={loading || (classLevel === 'FOUNDATION' && selectedBatches.length === 0)}
             className="px-6 py-3 bg-art-indigo hover:bg-art-indigo/90 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Save className="w-5 h-5" />
