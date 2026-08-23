@@ -46,6 +46,8 @@ export default function FeesPage() {
   // Add Payment Form
   const [showAddForm, setShowAddForm] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState('')
+  const [studentSearchQuery, setStudentSearchQuery] = useState('')
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false)
   const [amount, setAmount] = useState('')
   const [paymentMode, setPaymentMode] = useState<'BANK' | 'CASH'>('BANK')
   const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -67,6 +69,21 @@ export default function FeesPage() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Close student dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.student-search-container')) {
+        setShowStudentDropdown(false)
+      }
+    }
+
+    if (showStudentDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showStudentDropdown])
 
   const loadData = async () => {
     try {
@@ -170,6 +187,7 @@ export default function FeesPage() {
       
       // Reset form
       setSelectedStudent('')
+      setStudentSearchQuery('')
       setAmount('')
       setPaymentMode('BANK')
       setPaymentDate(format(new Date(), 'yyyy-MM-dd'))
@@ -427,18 +445,71 @@ export default function FeesPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Student <span className="text-red-500">*</span>
               </label>
-              <select
-                value={selectedStudent}
-                onChange={(e) => setSelectedStudent(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
-              >
-                <option value="">Select Student</option>
-                {enrollments.map((enrollment) => (
-                  <option key={enrollment.id} value={enrollment.id}>
-                    {enrollment.student_first_name} {enrollment.student_last_name} ({enrollment.student_id})
-                  </option>
-                ))}
-              </select>
+              <div className="relative student-search-container">
+                <input
+                  type="text"
+                  value={studentSearchQuery}
+                  onChange={(e) => {
+                    setStudentSearchQuery(e.target.value)
+                    setShowStudentDropdown(true)
+                    if (!e.target.value) {
+                      setSelectedStudent('')
+                    }
+                  }}
+                  onFocus={() => setShowStudentDropdown(true)}
+                  placeholder="Search student by name or ID..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                />
+                
+                {/* Dropdown list */}
+                {showStudentDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {enrollments
+                      .filter((enrollment) => {
+                        const searchLower = studentSearchQuery.toLowerCase()
+                        const fullName = `${enrollment.student_first_name} ${enrollment.student_last_name}`.toLowerCase()
+                        const studentId = enrollment.student_id.toLowerCase()
+                        return fullName.includes(searchLower) || studentId.includes(searchLower)
+                      })
+                      .map((enrollment) => (
+                        <button
+                          key={enrollment.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedStudent(enrollment.id)
+                            setStudentSearchQuery(`${enrollment.student_first_name} ${enrollment.student_last_name} (${enrollment.student_id})`)
+                            setShowStudentDropdown(false)
+                          }}
+                          className={`w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors ${
+                            selectedStudent === enrollment.id ? 'bg-art-indigo/10' : ''
+                          }`}
+                        >
+                          <div className="font-medium text-gray-900">
+                            {enrollment.student_first_name} {enrollment.student_last_name}
+                          </div>
+                          <div className="text-sm text-gray-500">{enrollment.student_id}</div>
+                        </button>
+                      ))}
+                    
+                    {enrollments.filter((enrollment) => {
+                      const searchLower = studentSearchQuery.toLowerCase()
+                      const fullName = `${enrollment.student_first_name} ${enrollment.student_last_name}`.toLowerCase()
+                      const studentId = enrollment.student_id.toLowerCase()
+                      return fullName.includes(searchLower) || studentId.includes(searchLower)
+                    }).length === 0 && (
+                      <div className="px-4 py-3 text-center text-gray-500 text-sm">
+                        No students found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {selectedStudent 
+                  ? `Selected: ${enrollments.find(e => e.id === selectedStudent)?.student_first_name} ${enrollments.find(e => e.id === selectedStudent)?.student_last_name}`
+                  : 'Start typing to search for a student'
+                }
+              </p>
             </div>
 
             {/* Amount */}

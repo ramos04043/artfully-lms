@@ -12,8 +12,10 @@ import {
   Search,
   RefreshCw,
   ChevronDown,
-  TrendingUp
+  TrendingUp,
+  Trash2
 } from 'lucide-react'
+import ConfirmationDialog from '@/components/ui/confirmation-dialog'
 
 interface AttendanceRecord {
   id: string
@@ -61,6 +63,12 @@ export default function AttendancePage() {
   const [selectedBatch, setSelectedBatch] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [recordToDelete, setRecordToDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [success, setSuccess] = useState('')
 
   useEffect(() => {
     loadData()
@@ -251,6 +259,46 @@ export default function AttendancePage() {
     setSearchQuery('')
   }
 
+  const handleDeleteRecord = (recordId: string) => {
+    setRecordToDelete(recordId)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteRecord = async () => {
+    if (!recordToDelete) return
+
+    try {
+      setDeleting(true)
+      setShowDeleteConfirm(false)
+      setError('')
+      setSuccess('')
+
+      console.log('🗑️ Deleting attendance record:', recordToDelete)
+
+      const { error: deleteError } = await db
+        .from('attendance')
+        .delete()
+        .eq('id', recordToDelete)
+
+      if (deleteError) throw deleteError
+
+      console.log('✅ Attendance record deleted successfully')
+      setSuccess('Attendance record deleted successfully!')
+      setRecordToDelete(null)
+      
+      // Reload attendance data
+      await loadAttendance()
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err: any) {
+      console.error('Error deleting attendance record:', err)
+      setError(err.message || 'Failed to delete attendance record')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -290,6 +338,22 @@ export default function AttendancePage() {
             <p className="text-red-800 text-sm font-medium">Error loading data</p>
             <p className="text-red-700 text-sm mt-1">{error}</p>
           </div>
+          <button onClick={() => setError('')} className="text-red-600 hover:text-red-800">
+            <XCircle className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Success Alert */}
+      {success && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-green-800 text-sm font-medium">{success}</p>
+          </div>
+          <button onClick={() => setSuccess('')} className="text-green-600 hover:text-green-800">
+            <XCircle className="w-5 h-5" />
+          </button>
         </div>
       )}
 
@@ -489,12 +553,15 @@ export default function AttendancePage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Notes
                 </th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {refreshing ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-art-indigo"></div>
                       <span className="ml-3 text-gray-600">Refreshing...</span>
@@ -503,7 +570,7 @@ export default function AttendancePage() {
                 </tr>
               ) : attendance.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="text-gray-400">
                       <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p className="text-lg font-medium text-gray-900">No attendance records found</p>
@@ -534,7 +601,7 @@ export default function AttendancePage() {
                         <div className="text-sm">
                           <div className="font-medium text-gray-900">{batch?.name || 'Unknown'}</div>
                           <div className="text-xs text-gray-500">
-                            {batch?.day_of_week} � {batch?.start_time}-{batch?.end_time}
+                            {batch?.day_of_week} � {batch?.start_time}-{batch?.end_time}
                           </div>
                         </div>
                       </td>
@@ -582,6 +649,17 @@ export default function AttendancePage() {
                           {record.notes || '-'}
                         </div>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button
+                          onClick={() => handleDeleteRecord(record.id)}
+                          disabled={deleting}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Delete attendance record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </td>
                     </tr>
                   )
                 })
@@ -606,6 +684,21 @@ export default function AttendancePage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setRecordToDelete(null)
+        }}
+        onConfirm={confirmDeleteRecord}
+        title="Delete Attendance Record?"
+        message="Are you sure you want to delete this attendance record? This action cannot be undone and will permanently remove the record from the system."
+        confirmText="Delete Record"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   )
 }

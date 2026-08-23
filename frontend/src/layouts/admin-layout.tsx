@@ -18,6 +18,7 @@ import {
   Palette,
   BookOpen,
   DollarSign,
+  ListTodo,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +40,7 @@ const navigation = [
   { name: 'Reports', href: '/admin/reports', icon: FileText },
   { name: 'Notifications', href: '/admin/notifications', icon: Bell },
   { name: 'Staff', href: '/admin/staff', icon: UsersRound },
+  { name: 'Tasks', href: '/admin/tasks', icon: ListTodo },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ]
 

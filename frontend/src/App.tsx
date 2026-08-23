@@ -34,6 +34,7 @@ import ManualRevenuePage from '@/pages/admin/finance/manual-revenue-page'
 import ReportsPage from '@/pages/admin/reports/reports-page'
 import NotificationsPage from '@/pages/admin/notifications/notifications-page'
 import StaffManagementPage from '@/pages/admin/staff/staff-management-page'
+import TasksPage from '@/pages/admin/tasks/tasks-page'
 import SettingsPage from '@/pages/admin/settings/settings-page'
 
 // Staff Pages
@@ -114,6 +115,7 @@ function App() {
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/staff" element={<StaffManagementPage />} />
+                  <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Routes>
               </AdminLayout>

@@ -361,7 +361,7 @@ export default function BatchesPage() {
 
     try {
       // Validation
-      if (!batchName || !programmeId || !dayOfWeek || !startTime || !endTime) {
+      if (!programmeId || !dayOfWeek || !startTime || !endTime) {
         throw new Error('Please fill in all required fields')
       }
 
@@ -374,9 +374,19 @@ export default function BatchesPage() {
         throw new Error('Capacity must be at least 1')
       }
 
+      // Auto-generate batch name based on day of week if not provided
+      let finalBatchName = batchName.trim()
+      if (!finalBatchName) {
+        // Count existing batches for this day to generate sequential number
+        const existingBatchesForDay = batches.filter(b => b.day_of_week === dayOfWeek)
+        const batchNumber = existingBatchesForDay.length + 1
+        const dayName = dayOfWeek.charAt(0) + dayOfWeek.slice(1).toLowerCase()
+        finalBatchName = `${dayName} Batch ${batchNumber}`
+      }
+
       // Build batch data - use HH:MM format from inputs directly
       const batchParams = {
-        p_name: batchName,
+        p_name: finalBatchName,
         p_programme_id: programmeId,
         p_day_of_week: dayOfWeek,
         p_start_time: startTime,  // HH:MM format
@@ -390,7 +400,7 @@ export default function BatchesPage() {
       // ZendBX SDK limitation: Cannot handle TIME columns and no .rpc() method
       // Show SQL that user needs to run manually
       const sqlQuery = `INSERT INTO batches (name, programme_id, day_of_week, start_time, end_time, max_capacity, current_enrollment, room_number, is_active)
-VALUES ('${batchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'::time, '${endTime}:00'::time, ${capacity}, 0, ${roomNumber ? `'${roomNumber}'` : 'NULL'}, true);`
+VALUES ('${finalBatchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'::time, '${endTime}:00'::time, ${capacity}, 0, ${roomNumber ? `'${roomNumber}'` : 'NULL'}, true);`
 
       console.log('SQL to run:', sqlQuery)
       
@@ -605,14 +615,13 @@ VALUES ('${batchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'::tim
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Batch Name <span className="text-red-500">*</span>
+                    Batch Name <span className="text-gray-500 text-xs">(optional - auto-generated if empty)</span>
                   </label>
                   <input
                     type="text"
                     value={batchName}
                     onChange={(e) => setBatchName(e.target.value)}
-                    placeholder="e.g., Morning Batch A"
-                    required
+                    placeholder="Leave empty to auto-generate (e.g., Monday Batch 1)"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
                   />
                 </div>
