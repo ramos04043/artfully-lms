@@ -117,7 +117,7 @@ export default function EnrollmentPage() {
           // Count students in this specific batch
           const { data: studentBatches, error: enrollError } = await db
             .from('student_batches')
-            .select('id', { count: 'exact', head: true })
+            .select('id')
             .eq('batch_id', batch.id)
             .eq('is_active', true)
 
@@ -315,18 +315,18 @@ export default function EnrollmentPage() {
   const weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <button
           onClick={() => navigate('/admin/students')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 touch-manipulation"
         >
           <ArrowLeft className="w-5 h-5" />
-          Back to Students
+          <span className="text-sm md:text-base">Back to Students</span>
         </button>
-        <h1 className="text-3xl font-bold text-gray-900">New Student Enrollment</h1>
-        <p className="text-gray-600 mt-1">Add a new student and select their batch preferences</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">New Student Enrollment</h1>
+        <p className="text-sm md:text-base text-gray-600 mt-1">Add a new student and select their batch preferences</p>
       </div>
 
       {/* Alerts */}
@@ -345,15 +345,15 @@ export default function EnrollmentPage() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Left Column - Student & Parent Info */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Student Information */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Student Information</h2>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">Student Information</h2>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Full Name <span className="text-red-500">*</span>
                   </label>
@@ -362,7 +362,7 @@ export default function EnrollmentPage() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
@@ -372,7 +372,7 @@ export default function EnrollmentPage() {
                     type="date"
                     value={dateOfBirth}
                     onChange={(e) => setDateOfBirth(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
@@ -381,7 +381,7 @@ export default function EnrollmentPage() {
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   >
                     <option value="">Select</option>
                     <option value="Male">Male</option>
@@ -396,7 +396,7 @@ export default function EnrollmentPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
@@ -406,17 +406,17 @@ export default function EnrollmentPage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
                   <textarea
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
@@ -426,7 +426,7 @@ export default function EnrollmentPage() {
                     type="text"
                     value={schoolName}
                     onChange={(e) => setSchoolName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
@@ -436,18 +436,18 @@ export default function EnrollmentPage() {
                     type="text"
                     value={grade}
                     onChange={(e) => setGrade(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Class Level <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={classLevel}
                     onChange={(e) => setClassLevel(e.target.value as 'FOUNDATION' | 'ADVANCED')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   >
                     <option value="FOUNDATION">Foundation</option>
                     <option value="ADVANCED">Advanced</option>
@@ -460,10 +460,10 @@ export default function EnrollmentPage() {
             </div>
 
             {/* Parent Information */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Parent/Guardian Information</h2>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">Parent/Guardian Information</h2>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     First Name <span className="text-red-500">*</span>
@@ -473,7 +473,7 @@ export default function EnrollmentPage() {
                     value={parentFirstName}
                     onChange={(e) => setParentFirstName(e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
@@ -483,7 +483,7 @@ export default function EnrollmentPage() {
                     type="text"
                     value={parentLastName}
                     onChange={(e) => setParentLastName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
@@ -496,16 +496,16 @@ export default function EnrollmentPage() {
                     value={parentPhone}
                     onChange={(e) => setParentPhone(e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   />
                 </div>
 
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Relationship</label>
                   <select
                     value={relationship}
                     onChange={(e) => setRelationship(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent text-base"
                   >
                     <option value="">Select</option>
                     <option value="Mother">Mother</option>
@@ -521,8 +521,8 @@ export default function EnrollmentPage() {
           {/* Right Column - Batch Selection (only for Foundation) */}
           <div>
             {classLevel === 'FOUNDATION' ? (
-              <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-8">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 lg:sticky lg:top-8">
+                <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">
                   Select Batch Preferences
                 </h2>
                 <p className="text-sm text-gray-600 mb-4">
@@ -534,14 +534,14 @@ export default function EnrollmentPage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-art-indigo mx-auto"></div>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                <div className="space-y-4 max-h-[500px] lg:max-h-[600px] overflow-y-auto scrollbar-thin">
                   {weekdays.map((weekday) => {
                     const dayBatches = groupedBatches[weekday] || []
                     if (dayBatches.length === 0) return null
 
                     return (
                       <div key={weekday}>
-                        <h3 className="font-medium text-gray-900 mb-2">{weekday}</h3>
+                        <h3 className="font-medium text-gray-900 mb-2 text-sm md:text-base">{weekday}</h3>
                         <div className="space-y-2">
                           {dayBatches.map((batch) => {
                             const isSelected = selectedBatches.includes(batch.id)
@@ -675,18 +675,18 @@ export default function EnrollmentPage() {
         </div>
 
         {/* Submit Button */}
-        <div className="mt-8 flex justify-end gap-4">
+        <div className="mt-6 md:mt-8 flex flex-col sm:flex-row justify-end gap-3 md:gap-4">
           <button
             type="button"
             onClick={() => navigate('/admin/students')}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors touch-manipulation order-2 sm:order-1"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading || (classLevel === 'FOUNDATION' && selectedBatches.length === 0) || (classLevel === 'ADVANCED' && selectedDays.length === 0)}
-            className="px-6 py-3 bg-art-indigo hover:bg-art-indigo/90 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-3 bg-art-indigo hover:bg-art-indigo/90 text-white rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation order-1 sm:order-2"
           >
             <Save className="w-5 h-5" />
             {loading ? 'Enrolling...' : 'Enroll Student'}

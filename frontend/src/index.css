@@ -144,6 +144,70 @@
     padding-right: env(safe-area-inset-right);
   }
 
+  /* Mobile table responsiveness */
+  @media (max-width: 768px) {
+    .mobile-card-table {
+      display: block;
+    }
+
+    .mobile-card-table thead {
+      display: none;
+    }
+
+    .mobile-card-table tbody {
+      display: block;
+    }
+
+    .mobile-card-table tr {
+      display: block;
+      margin-bottom: 1rem;
+      border: 1px solid hsl(var(--border));
+      border-radius: 0.5rem;
+      padding: 1rem;
+      background: white;
+    }
+
+    .mobile-card-table td {
+      display: block;
+      text-align: left;
+      padding: 0.5rem 0;
+      border: none;
+    }
+
+    .mobile-card-table td:before {
+      content: attr(data-label);
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.25rem;
+      color: hsl(var(--muted-foreground));
+      font-size: 0.875rem;
+    }
+  }
+
+  /* Mobile form enhancements */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 16px !important; /* Prevents iOS zoom on focus */
+    }
+
+    button {
+      min-height: 44px; /* iOS touch target size */
+      min-width: 44px;
+    }
+  }
+
+  /* Hide scrollbar on mobile for cleaner look */
+  @media (max-width: 768px) {
+    .mobile-hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .mobile-hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
   /* Prevent text selection on buttons */
   .no-select {
     -webkit-user-select: none;
