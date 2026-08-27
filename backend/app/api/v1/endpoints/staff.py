@@ -827,6 +827,45 @@ async def submit_batch_attendance(
                         # Don't fail attendance submission
                 else:
                     absent_count += 1
+                    
+                    # AUTO-CREATE COMPENSATION REQUEST FOR ABSENT STUDENT
+                    try:
+                        attendance_id = created[0]['id']
+                        
+                        compensation_data = {
+                            "student_id": student_id,
+                            "original_attendance_id": attendance_id,
+                            "original_batch_id": str(batch_id),
+                            "original_date": class_date,
+                            "status": "PENDING_APPROVAL",
+                            "notes": f"Auto-created for absence on {class_date}"
+                        }
+                        
+                        compensation = await db.insert("compensations", compensation_data)
+                        
+                        if compensation:
+                            logger.info(f"✓ Auto-created compensation request for student {student_id}")
+                            
+                            # Create notification for admin
+                            try:
+                                notification_data = {
+                                    "type": "COMPENSATION_REQUEST",
+                                    "title": "New Compensation Request",
+                                    "message": f"Student {student_id} was absent on {class_date}. Compensation request created automatically.",
+                                    "priority": "NORMAL",
+                                    "status": "UNREAD",
+                                    "reference_type": "compensation",
+                                    "reference_id": compensation[0]['id']
+                                }
+                                
+                                await db.insert("notifications", notification_data)
+                                logger.info(f"✓ Created notification for compensation {compensation[0]['id']}")
+                            except Exception as notif_error:
+                                logger.warning(f"Failed to create notification: {notif_error}")
+                    
+                    except Exception as comp_error:
+                        logger.error(f"Failed to create compensation for student {student_id}: {comp_error}")
+                        # Don't fail attendance submission if compensation creation fails
         
         logger.info(f"Attendance submitted: {marked_count} marked ({present_count} present, {absent_count} absent)")
         

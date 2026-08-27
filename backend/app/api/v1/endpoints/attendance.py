@@ -238,7 +238,40 @@ async def submit_attendance(
                     else:
                         absent_count += 1
                         
-                        # Step 7: Send absence notification
+                        # Step 7: Auto-create compensation request for absent student
+                        try:
+                            compensation_data = {
+                                "student_id": record.student_id,
+                                "original_attendance_id": attendance_id,
+                                "original_batch_id": submission.batch_id,
+                                "original_date": submission.class_date.isoformat(),
+                                "status": "PENDING_APPROVAL",
+                                "notes": f"Auto-created for absence on {submission.class_date}"
+                            }
+                            
+                            compensation = await db.insert("compensations", compensation_data)
+                            
+                            if compensation:
+                                logger.info(f"Auto-created compensation request for {student_name}")
+                                
+                                # Create notification for admin
+                                notification_data = {
+                                    "type": "COMPENSATION_REQUEST",
+                                    "title": "New Compensation Request",
+                                    "message": f"{student_name} was absent on {submission.class_date}. Compensation request created automatically.",
+                                    "priority": "NORMAL",
+                                    "status": "UNREAD",
+                                    "reference_type": "compensation",
+                                    "reference_id": compensation[0]['id']
+                                }
+                                
+                                await db.insert("notifications", notification_data)
+                        
+                        except Exception as comp_error:
+                            logger.warning(f"Failed to create compensation for {student_name}: {comp_error}")
+                            # Don't fail attendance submission if compensation creation fails
+                        
+                        # Step 8: Send absence notification
                         try:
                             # Get parent email from enrollment
                             parent_email = student.get('parent_email')
@@ -249,7 +282,7 @@ async def submit_attendance(
                                     "recipient_email": parent_email,
                                     "recipient_name": student.get('parent_first_name', 'Parent'),
                                     "subject": f"Absence Notification - {student_name}",
-                                    "body": f"Dear Parent,\n\n{student_name} was marked absent on {submission.class_date}.\n\nIf this is unexpected, please contact us.\n\nArtfully",
+                                    "body": f"Dear Parent,\n\n{student_name} was marked absent on {submission.class_date}.\n\nA compensation/makeup class will be scheduled by the admin.\n\nArtfully",
                                     "email_type": "ABSENCE_NOTIFICATION",
                                     "status": "QUEUED",
                                     "reference_type": "attendance",

@@ -48,6 +48,12 @@ export default function CompensationPage() {
 
   // Action states
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  
+  // Assignment modal state
+  const [assignModalOpen, setAssignModalOpen] = useState(false)
+  const [selectedCompensation, setSelectedCompensation] = useState<Compensation | null>(null)
+  const [assignmentBatchId, setAssignmentBatchId] = useState('')
+  const [assignmentDate, setAssignmentDate] = useState('')
 
   useEffect(() => {
     loadData()
@@ -113,29 +119,57 @@ export default function CompensationPage() {
   }, [filterStatus])
 
   const handleApprove = async (compensationId: string) => {
+    // Open assignment modal instead of direct approval
+    const comp = compensations.find(c => c.id === compensationId)
+    if (comp) {
+      setSelectedCompensation(comp)
+      setAssignModalOpen(true)
+    }
+  }
+
+  const handleAssignCompensation = async () => {
+    if (!selectedCompensation || !assignmentBatchId || !assignmentDate) {
+      setError('Please select both batch and date')
+      return
+    }
+
     try {
-      setActionLoading(compensationId)
+      setActionLoading(selectedCompensation.id)
       setError('')
       setSuccess('')
 
-      // Update compensation status to ASSIGNED
-      const { error: updateError } = await db
-        .from('compensations')
-        .update({
-          status: 'ASSIGNED',
-          approved_at: new Date().toISOString(),
-        })
-        .eq('id', compensationId)
+      // Call backend API to assign compensation
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${API_URL}/api/compensations/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          compensation_id: selectedCompensation.id,
+          compensation_batch_id: assignmentBatchId,
+          compensation_date: assignmentDate,
+        }),
+      })
 
-      if (updateError) throw updateError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to assign compensation')
+      }
 
-      setSuccess('Compensation approved successfully!')
+      setSuccess('Compensation assigned successfully! Student will be notified.')
       await loadCompensations()
+      
+      // Reset modal
+      setAssignModalOpen(false)
+      setSelectedCompensation(null)
+      setAssignmentBatchId('')
+      setAssignmentDate('')
 
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
-      console.error('Error approving compensation:', err)
-      setError(err.message || 'Failed to approve compensation')
+      console.error('Error assigning compensation:', err)
+      setError(err.message || 'Failed to assign compensation')
     } finally {
       setActionLoading(null)
     }
@@ -150,17 +184,23 @@ export default function CompensationPage() {
       setError('')
       setSuccess('')
 
-      // Update compensation status to REJECTED
-      const { error: updateError } = await db
-        .from('compensations')
-        .update({
-          status: 'REJECTED',
+      // Call backend API to reject
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${API_URL}/api/compensations/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          compensation_id: compensationId,
           rejection_reason: reason,
-          approved_at: new Date().toISOString(),
-        })
-        .eq('id', compensationId)
+        }),
+      })
 
-      if (updateError) throw updateError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to reject compensation')
+      }
 
       setSuccess('Compensation rejected successfully!')
       await loadCompensations()
@@ -233,7 +273,12 @@ export default function CompensationPage() {
 
   // Get student info
   const getStudentInfo = (studentId: string) => {
-    const enrollment = enrollments.find((e) => e.id === studentId)
+    // student_id in compensations is now the student code (e.g., "ART1002"), not UUID
+    // so we match against enrollment.student_id
+    console.log('Looking up student:', studentId, 'in', enrollments.length, 'enrollments')
+    console.log('Enrollments:', enrollments.map(e => e.student_id))
+    const enrollment = enrollments.find((e) => e.student_id === studentId)
+    console.log('Found enrollment:', enrollment)
     if (enrollment) {
       return {
         name: `${enrollment.student_first_name} ${enrollment.student_last_name}`,
@@ -522,6 +567,100 @@ export default function CompensationPage() {
       {compensations.length > 0 && (
         <div className="mt-4 text-sm text-gray-600 text-center">
           Showing {compensations.length} compensation{compensations.length !== 1 ? 's' : ''}
+        </div>
+      )}
+
+      {/* Assignment Modal */}
+      {assignModalOpen && selectedCompensation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Assign Compensation Class
+              </h2>
+
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Student Information</h3>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Student:</span> {getStudentInfo(selectedCompensation.student_id).name}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Original Absence:</span> {format(new Date(selectedCompensation.original_date), 'MMM dd, yyyy')}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Original Batch:</span> {getBatchInfo(selectedCompensation.original_batch_id)}
+                </p>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Compensation Batch *
+                  </label>
+                  <select
+                    value={assignmentBatchId}
+                    onChange={(e) => setAssignmentBatchId(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  >
+                    <option value="">-- Select a batch --</option>
+                    {batches.map((batch) => (
+                      <option key={batch.id} value={batch.id}>
+                        {batch.name} ({batch.day_of_week} {batch.start_time}-{batch.end_time})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Compensation Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={assignmentDate}
+                    onChange={(e) => setAssignmentDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Must be a future date
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setAssignModalOpen(false)
+                    setSelectedCompensation(null)
+                    setAssignmentBatchId('')
+                    setAssignmentDate('')
+                  }}
+                  disabled={actionLoading === selectedCompensation.id}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignCompensation}
+                  disabled={actionLoading === selectedCompensation.id || !assignmentBatchId || !assignmentDate}
+                  className="px-4 py-2 bg-art-indigo text-white rounded-lg hover:bg-art-indigo-dark font-medium disabled:opacity-50 flex items-center gap-2"
+                >
+                  {actionLoading === selectedCompensation.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Assigning...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Assign Compensation
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

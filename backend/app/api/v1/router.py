@@ -3,7 +3,8 @@ from fastapi import APIRouter
 # Import endpoint routers
 from app.api.v1.endpoints import (
     attendance, payments, enrollment, expenses, staff, 
-    automation, staff_auth_fix, database, migrations, batch_students, finance
+    automation, staff_auth_fix, database, migrations, batch_students, finance,
+    compensations
 )
 
 api_router = APIRouter()
@@ -20,6 +21,7 @@ api_router.include_router(database.router, prefix="/db", tags=["Database Proxy"]
 api_router.include_router(migrations.router, prefix="/migrations", tags=["Database Migrations"])
 api_router.include_router(batch_students.router, prefix="/batch-management", tags=["Batch Management"])
 api_router.include_router(finance.router, prefix="/finance", tags=["Finance"])
+api_router.include_router(compensations.router, prefix="/compensations", tags=["Compensations"])
 
 # Future endpoints (to be implemented)
 # api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
