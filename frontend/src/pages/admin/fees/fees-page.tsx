@@ -113,7 +113,7 @@ export default function FeesPage() {
         .from('financial_transactions')
         .select('*')
         .in('transaction_type', ['REVENUE', 'INFLOW'])  // Support both for transition
-        .in('category', ['STUDENT_FEES', 'FEE_COLLECTION'])  // Support both category names
+        .or('category.eq.STUDENT_FEES,category.eq.FEE_COLLECTION,category.is.null')  // Support multiple category names and legacy null
         .eq('status', 'ACTIVE')  // Only show ACTIVE transactions
         .order('transaction_date', { ascending: false })
 
@@ -148,7 +148,11 @@ export default function FeesPage() {
       // Get ZendBX token from localStorage
       const token = localStorage.getItem('zendbx_token')
       if (!token) {
-        setError('Authentication required. Please log in.')
+        setError('Your session has expired. Please log in again.')
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 2000)
         return
       }
 
@@ -176,7 +180,17 @@ export default function FeesPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('? Backend error:', errorData)
+        console.error('❌ Backend error:', errorData)
+        
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          setError('Your session has expired. Please log in again.')
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 2000)
+          return
+        }
+        
         throw new Error(errorData.detail || 'Failed to add payment')
       }
 
