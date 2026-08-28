@@ -216,7 +216,7 @@ export default function BatchesPage() {
     setBatchStudents([])
     
     try {
-      // Get ALL active enrollments (not just ones assigned to this batch)
+      // Get only enrollments assigned to this specific batch
       const { data: allEnrollments, error: enrollError } = await db
         .from('enrollments')
         .select('*')
@@ -230,8 +230,14 @@ export default function BatchesPage() {
         throw enrollError
       }
       
-      // Show ALL active students, not just ones in this batch
-      setBatchStudents((allEnrollments || []) as BatchStudent[])
+      // Filter to show ONLY students assigned to this batch
+      const studentsInThisBatch = (allEnrollments || []).filter(enrollment => 
+        enrollment.batch_ids && enrollment.batch_ids.includes(batch.id)
+      )
+      
+      console.log('📊 Students in this batch:', studentsInThisBatch.length)
+      
+      setBatchStudents(studentsInThisBatch as BatchStudent[])
     } catch (err) {
       console.error('Error loading students:', err)
       setError('Failed to load students')
@@ -976,14 +982,11 @@ VALUES ('${finalBatchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'
             <div className="p-6 overflow-y-auto max-h-[calc(85vh-180px)]">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Manage Student Assignments
+                  Students in {selectedBatch.name}
                 </h3>
                 <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
-                    {batchStudents.filter(s => s.batch_ids?.includes(selectedBatch.id)).length} in this batch
-                  </span>
                   <span className="px-3 py-1 bg-art-indigo/10 text-art-indigo rounded-full text-sm font-medium">
-                    {batchStudents.length} total students
+                    {batchStudents.length} {batchStudents.length === 1 ? 'student' : 'students'}
                   </span>
                   <span className="text-sm text-gray-600">
                     {selectedBatch.remaining_capacity} spots available
@@ -991,12 +994,6 @@ VALUES ('${finalBatchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'
                 </div>
               </div>
               
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  💡 <strong>Tip:</strong> All active students are shown below. Use the dropdown to assign or change batch assignments.
-                </p>
-              </div>
-
               {loadingStudents ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-art-indigo mx-auto mb-3"></div>
@@ -1005,25 +1002,19 @@ VALUES ('${finalBatchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'
               ) : batchStudents.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 text-lg">No active students found</p>
-                  <p className="text-sm text-gray-500 mt-2">Enroll students to manage their batches</p>
+                  <p className="text-gray-600 text-lg">No students in this batch</p>
+                  <p className="text-sm text-gray-500 mt-2">Assign students to this batch from the student detail page</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {batchStudents.map((student) => {
-                    // Check if student is currently in the selected batch
-                    const isInSelectedBatch = student.batch_ids?.includes(selectedBatch.id)
                     // Get student's current batch assignment (first batch in array)
                     const currentBatchId = student.batch_ids?.[0] || null
                     
                     return (
                       <div
                         key={student.id}
-                        className={`flex items-center justify-between p-4 rounded-lg border-2 transition-colors ${
-                          isInSelectedBatch 
-                            ? 'border-art-indigo bg-art-indigo/5' 
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className="flex items-center justify-between p-4 rounded-lg border-2 border-art-indigo bg-art-indigo/5 transition-colors"
                       >
                         <div className="flex items-center gap-3 flex-1">
                           <div className="w-12 h-12 bg-art-indigo/10 rounded-full flex items-center justify-center">
@@ -1037,11 +1028,6 @@ VALUES ('${finalBatchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'
                               <p className="font-medium text-gray-900">
                                 {student.student_first_name} {student.student_last_name}
                               </p>
-                              {isInSelectedBatch && (
-                                <span className="px-2 py-0.5 bg-art-indigo text-white text-xs rounded-full">
-                                  In This Batch
-                                </span>
-                              )}
                             </div>
                             <p className="text-sm text-gray-500">{student.student_id}</p>
                           </div>
