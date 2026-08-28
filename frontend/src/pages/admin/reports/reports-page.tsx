@@ -143,30 +143,98 @@ export default function StatisticsPage() {
         (e) => e.created_at >= monthStart && e.created_at <= monthEnd + 'T23:59:59'
       ).length || 0
 
-    // Financial data - revenue (fees collected)
-    const { data: feeTransactions } = await db
+    // Financial data - revenue (fees collected + manual revenue)
+    // Query REVENUE transactions separately since .in() might not work
+    const { data: revenueTransactions, error: revenueError } = await db
       .from('financial_transactions')
-      .select('amount, transaction_date')
+      .select('amount, transaction_date, transaction_type, category, status')
+      .eq('transaction_type', 'REVENUE')
+
+    console.log('🔍 REVENUE query result:', revenueTransactions?.length || 0, 'Error:', revenueError)
+
+    // Filter by status='ACTIVE' in JS in case status column doesn't exist or has null values
+    const activeRevenue = revenueTransactions?.filter(t => !t.status || t.status === 'ACTIVE') || []
+
+    // Also get legacy INFLOW transactions
+    const { data: inflowTransactions, error: inflowError } = await db
+      .from('financial_transactions')
+      .select('amount, transaction_date, transaction_type, category, status')
       .eq('transaction_type', 'INFLOW')
-      .eq('category', 'FEE_COLLECTION')
 
-    const totalRevenue = feeTransactions?.reduce((sum, t) => sum + t.amount, 0) || 0
-    const monthlyRevenue =
-      feeTransactions
-        ?.filter((t) => t.transaction_date >= monthStart && t.transaction_date <= monthEnd)
-        .reduce((sum, t) => sum + t.amount, 0) || 0
+    console.log('🔍 INFLOW query result:', inflowTransactions?.length || 0, 'Error:', inflowError)
 
-    // Financial data - expenses
-    const { data: expenseTransactions } = await db
+    const activeInflow = inflowTransactions?.filter(t => !t.status || t.status === 'ACTIVE') || []
+
+    // Combine both
+    const allRevenue = [...activeRevenue, ...activeInflow]
+    
+    console.log('💰 All revenue transactions:', allRevenue)
+    console.log('  REVENUE count:', activeRevenue.length)
+    console.log('  INFLOW count:', activeInflow.length)
+
+    const totalRevenue = allRevenue.reduce((sum, t) => sum + t.amount, 0)
+    const monthlyRevenue = allRevenue
+      .filter((t) => t.transaction_date >= monthStart && t.transaction_date <= monthEnd)
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    console.log('📊 Revenue Summary:', {
+      totalRevenue,
+      monthlyRevenue,
+      monthStart,
+      monthEnd,
+      totalTransactions: allRevenue.length
+    })
+
+    // Financial data - expenses (only OPEX expenses, not CAPEX)
+    // Get OPEX accounts first
+    const { data: opexAccounts, error: opexError } = await db
+      .from('financial_accounts')
+      .select('id, account_name, account_type')
+      .eq('account_type', 'OPEX')
+      .eq('is_active', true)
+
+    const opexAccountIds = opexAccounts?.map(a => a.id) || []
+    
+    console.log('🏢 OPEX Accounts:', opexAccounts)
+    console.log('🏢 OPEX Account IDs:', opexAccountIds)
+    console.log('❌ OPEX Query Error:', opexError)
+
+    // Get EXPENSE transactions for OPEX accounts only
+    const { data: expenseTransactions, error: expenseError } = await db
       .from('financial_transactions')
-      .select('amount, transaction_date')
+      .select('amount, transaction_date, transaction_type, account_id, category, status')
+      .eq('transaction_type', 'EXPENSE')
+
+    console.log('💰 All EXPENSE transactions:', expenseTransactions?.length || 0, 'Error:', expenseError)
+    console.log('💰 Sample EXPENSE transaction:', expenseTransactions?.[0])
+
+    // Filter to only OPEX transactions and ACTIVE status
+    const opexExpenses = expenseTransactions?.filter(t => 
+      opexAccountIds.includes(t.account_id) && (!t.status || t.status === 'ACTIVE')
+    ) || []
+
+    // Also get legacy OUTFLOW transactions
+    const { data: outflowTransactions, error: outflowError } = await db
+      .from('financial_transactions')
+      .select('amount, transaction_date, transaction_type, account_id, category, status')
       .eq('transaction_type', 'OUTFLOW')
 
-    const totalExpenses = expenseTransactions?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0
-    const monthlyExpenses =
-      expenseTransactions
-        ?.filter((t) => t.transaction_date >= monthStart && t.transaction_date <= monthEnd)
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0
+    console.log('💰 All OUTFLOW transactions:', outflowTransactions?.length || 0, 'Error:', outflowError)
+
+    const opexOutflows = outflowTransactions?.filter(t => 
+      opexAccountIds.includes(t.account_id) && (!t.status || t.status === 'ACTIVE')
+    ) || []
+
+    const allExpenses = [...opexExpenses, ...opexOutflows]
+
+    console.log('💸 OPEX Expense transactions:', allExpenses.length)
+    console.log('💸 Total EXPENSE + OUTFLOW transactions:', (expenseTransactions?.length || 0) + (outflowTransactions?.length || 0))
+    console.log('💸 Filtered to OPEX:', allExpenses.length)
+
+    const totalExpenses = allExpenses.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    const monthlyExpenses = allExpenses
+      .filter((t) => t.transaction_date >= monthStart && t.transaction_date <= monthEnd)
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
     const netIncome = monthlyRevenue - monthlyExpenses
 
@@ -209,16 +277,50 @@ export default function StatisticsPage() {
     const startDate = format(startOfMonth(sixMonthsAgo), 'yyyy-MM-dd')
     const endDate = format(endOfMonth(today), 'yyyy-MM-dd')
 
-    // Fetch all data for 6 months in parallel (3 queries instead of 18!)
-    const [enrollmentsResult, revenueResult, expensesResult] = await Promise.all([
+    // Fetch all data for 6 months in parallel
+    // First get OPEX accounts
+    const opexAccountsResult = await db
+      .from('financial_accounts')
+      .select('id')
+      .eq('account_type', 'OPEX')
+      .eq('is_active', true)
+
+    const opexAccountIds = opexAccountsResult.data?.map(a => a.id) || []
+
+    const [
+      enrollmentsResult, 
+      revenueResult, 
+      inflowResult,
+      expensesResult,
+      outflowResult
+    ] = await Promise.all([
       db.from('enrollments').select('id, created_at').gte('created_at', startDate).lte('created_at', endDate + 'T23:59:59'),
-      db.from('financial_transactions').select('amount, transaction_date').eq('transaction_type', 'INFLOW').eq('category', 'FEE_COLLECTION').gte('transaction_date', startDate).lte('transaction_date', endDate),
-      db.from('financial_transactions').select('amount, transaction_date').eq('transaction_type', 'OUTFLOW').gte('transaction_date', startDate).lte('transaction_date', endDate)
+      // Get REVENUE transactions
+      db.from('financial_transactions').select('amount, transaction_date, account_id, status').eq('transaction_type', 'REVENUE').gte('transaction_date', startDate).lte('transaction_date', endDate),
+      // Get INFLOW transactions (legacy)
+      db.from('financial_transactions').select('amount, transaction_date, account_id, status').eq('transaction_type', 'INFLOW').gte('transaction_date', startDate).lte('transaction_date', endDate),
+      // Get EXPENSE transactions
+      db.from('financial_transactions').select('amount, transaction_date, account_id, status').eq('transaction_type', 'EXPENSE').gte('transaction_date', startDate).lte('transaction_date', endDate),
+      // Get OUTFLOW transactions (legacy)
+      db.from('financial_transactions').select('amount, transaction_date, account_id, status').eq('transaction_type', 'OUTFLOW').gte('transaction_date', startDate).lte('transaction_date', endDate)
     ])
 
     const allEnrollments = enrollmentsResult.data || []
-    const allRevenue = revenueResult.data || []
-    const allExpenses = expensesResult.data || []
+    
+    // Filter to only ACTIVE transactions (or null status for backwards compatibility)
+    const activeRevenue = [...(revenueResult.data || []), ...(inflowResult.data || [])].filter(t => 
+      !t.status || t.status === 'ACTIVE'
+    )
+    const allRevenue = activeRevenue
+    
+    // Filter to only OPEX expenses and ACTIVE status
+    const allExpenseData = [...(expensesResult.data || []), ...(outflowResult.data || [])].filter(t => 
+      (!t.status || t.status === 'ACTIVE')
+    )
+    const opexExpenses = allExpenseData.filter(t => 
+      opexAccountIds.includes(t.account_id)
+    )
+    const allExpenses = opexExpenses
 
     // Group by month
     const months = []
@@ -291,27 +393,56 @@ export default function StatisticsPage() {
     const monthStart = format(startOfMonth(today), 'yyyy-MM-dd')
     const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd')
 
-    console.log('?? Loading expense breakdown for:', monthStart, 'to', monthEnd)
+    console.log('💰💰 Loading expense breakdown for:', monthStart, 'to', monthEnd)
+
+    // Get OPEX accounts first
+    const { data: opexAccounts, error: opexError } = await db
+      .from('financial_accounts')
+      .select('id, account_name, account_type')
+      .eq('account_type', 'OPEX')
+      .eq('is_active', true)
+
+    const opexAccountIds = opexAccounts?.map(a => a.id) || []
+    
+    console.log('🏦 OPEX Accounts for expense breakdown:', opexAccounts)
+    console.log('🏦 OPEX Account IDs:', opexAccountIds)
 
     const { data: expenses, error } = await db
       .from('financial_transactions')
-      .select('category, amount, transaction_date')
+      .select('category, amount, transaction_date, transaction_type, account_id, status')
+      .eq('transaction_type', 'EXPENSE')
+      .gte('transaction_date', monthStart)
+      .lte('transaction_date', monthEnd)
+
+    // Also get legacy OUTFLOW expenses
+    const { data: outflows } = await db
+      .from('financial_transactions')
+      .select('category, amount, transaction_date, transaction_type, account_id, status')
       .eq('transaction_type', 'OUTFLOW')
       .gte('transaction_date', monthStart)
       .lte('transaction_date', monthEnd)
 
-    console.log('?? Expenses data:', expenses)
-    console.log('? Expenses error:', error)
+    console.log('💰💰 All EXPENSE transactions this month:', expenses?.length || 0)
+    console.log('💰💰 All OUTFLOW transactions this month:', outflows?.length || 0)
 
-    if (!expenses || expenses.length === 0) {
-      console.log('?? No expenses found for current month')
+    // Filter to only OPEX expenses (exclude CAPEX) and ACTIVE status
+    const allExpenses = [...(expenses || []), ...(outflows || [])].filter(t =>
+      opexAccountIds.includes(t.account_id) && (!t.status || t.status === 'ACTIVE')
+    )
+
+    console.log('💰💰 Total expenses before OPEX filter:', (expenses?.length || 0) + (outflows?.length || 0))
+    console.log('💰💰 OPEX expenses after filter:', allExpenses.length)
+    console.log('❌ Query error:', error)
+
+    if (!allExpenses || allExpenses.length === 0) {
+      console.log('✅ No OPEX expenses found for current month - this is correct for P&L if you only have CAPEX expenses')
       setExpenseData([])
-      return
+      return []
     }
 
     // Group by category
     const categoryMap = new Map<string, number>()
-    expenses.forEach((exp) => {
+    allExpenses.forEach((exp) => {
       const cat = exp.category || 'UNCATEGORIZED'
       categoryMap.set(cat, (categoryMap.get(cat) || 0) + Math.abs(exp.amount))
       console.log(`  ?? ${cat}: ?${Math.abs(exp.amount)}`)
