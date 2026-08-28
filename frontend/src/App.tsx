@@ -23,7 +23,6 @@ import EnrollmentPage from '@/pages/admin/students/enrollment-page'
 import BatchesPage from '@/pages/admin/batches/batches-page'
 import AttendancePage from '@/pages/admin/attendance/attendance-page'
 import CompensationPage from '@/pages/admin/compensation/compensation-page'
-import SessionsPage from '@/pages/admin/sessions/sessions-page'
 import FeesPage from '@/pages/admin/fees/fees-page'
 import FinanceOverviewPage from '@/pages/admin/finance/finance-overview-page'
 import CapexPage from '@/pages/admin/finance/capex-page'
@@ -104,7 +103,6 @@ function App() {
                   <Route path="/batches" element={<BatchesPage />} />
                   <Route path="/attendance" element={<AttendancePage />} />
                   <Route path="/compensation" element={<CompensationPage />} />
-                  <Route path="/sessions" element={<SessionsPage />} />
                   <Route path="/fees" element={<FeesPage />} />
                   <Route path="/finance" element={<FinanceOverviewPage />} />
                   <Route path="/finance/capex" element={<CapexPage />} />
