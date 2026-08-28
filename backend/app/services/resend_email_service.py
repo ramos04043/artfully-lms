@@ -1,12 +1,9 @@
 """
-Email Service for sending emails via SMTP
-Handles idempotency, logging, and error handling
+Resend Email Service
+Works on Render's free tier (no SMTP port restrictions)
 """
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import httpx
 from typing import Optional, Dict
-from datetime import datetime
 import logging
 
 from app.core.config import settings
@@ -16,29 +13,19 @@ from app.utils.timezone_utils import get_ist_now
 logger = logging.getLogger(__name__)
 
 
-class EmailService:
+class ResendEmailService:
     """
-    Email service with idempotency and logging
+    Email service using Resend API
     """
     
     def __init__(self):
-        self.smtp_host = settings.SMTP_HOST
-        self.smtp_port = settings.SMTP_PORT
-        self.smtp_user = settings.SMTP_USER
-        self.smtp_password = settings.SMTP_PASSWORD
+        self.api_key = getattr(settings, 'RESEND_API_KEY', None)
         self.from_email = settings.SMTP_FROM_EMAIL
         self.from_name = settings.SMTP_FROM_NAME
+        self.api_url = "https://api.resend.com/emails"
     
     async def check_idempotency(self, idempotency_key: str) -> bool:
-        """
-        Check if email with this idempotency key was already sent
-        
-        Args:
-            idempotency_key: Unique key for this email
-            
-        Returns:
-            bool: True if already sent, False otherwise
-        """
+        """Check if email was already sent"""
         try:
             result = await db.select(
                 'email_events',
@@ -55,7 +42,6 @@ class EmailService:
             return False
         except Exception as e:
             logger.error(f"Error checking idempotency: {e}")
-            # If error, assume not sent to be safe
             return False
     
     async def log_email_event(
@@ -71,24 +57,7 @@ class EmailService:
         reference_id: Optional[str] = None,
         failed_reason: Optional[str] = None
     ) -> Optional[str]:
-        """
-        Log email event to database
-        
-        Args:
-            recipient_email: Recipient email address
-            recipient_name: Recipient name
-            subject: Email subject
-            body: Email body (HTML)
-            email_type: Type of email (DAILY_SUMMARY, FEE_DUE, etc.)
-            status: Email status (QUEUED, SENT, FAILED)
-            idempotency_key: Optional idempotency key
-            reference_type: Optional reference type
-            reference_id: Optional reference ID
-            failed_reason: Optional failure reason
-            
-        Returns:
-            str: Email event ID or None
-        """
+        """Log email event to database"""
         try:
             email_event_data = {
                 'recipient_email': recipient_email,
@@ -102,11 +71,9 @@ class EmailService:
                 'failed_reason': failed_reason,
             }
             
-            # Add idempotency_key if provided and column exists
             if idempotency_key:
                 email_event_data['idempotency_key'] = idempotency_key
             
-            # Add sent_at if status is SENT
             if status == 'SENT':
                 email_event_data['sent_at'] = get_ist_now().isoformat()
             
@@ -122,7 +89,7 @@ class EmailService:
             logger.error(f"Error logging email event: {e}")
             return None
     
-    def send_smtp_email(
+    async def send_resend_email(
         self,
         to_email: str,
         to_name: Optional[str],
@@ -130,7 +97,7 @@ class EmailService:
         html_body: str
     ) -> Dict:
         """
-        Send email via SMTP
+        Send email via Resend API
         
         Args:
             to_email: Recipient email
@@ -141,46 +108,45 @@ class EmailService:
         Returns:
             dict: {success: bool, error: str}
         """
+        if not self.api_key:
+            error_msg = "Resend API key not configured"
+            logger.error(error_msg)
+            return {"success": False, "error": error_msg}
+        
         try:
-            # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
-            msg['To'] = to_email if not to_name else f"{to_name} <{to_email}>"
+            # Prepare Resend payload
+            payload = {
+                "from": f"{self.from_name} <{self.from_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_body
+            }
             
-            # Attach HTML part
-            html_part = MIMEText(html_body, 'html')
-            msg.attach(html_part)
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
             
-            # Send via SMTP with timeout
-            logger.info(f"Connecting to SMTP: {self.smtp_host}:{self.smtp_port}")
+            logger.info(f"Sending email via Resend to {to_email}")
             
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
-            
-            logger.info(f"Email sent successfully to {to_email}")
-            return {"success": True, "error": None}
-        
-        except smtplib.SMTPAuthenticationError as e:
-            error_msg = f"SMTP authentication failed: {str(e)}"
-            logger.error(error_msg)
-            return {"success": False, "error": error_msg}
-        
-        except smtplib.SMTPException as e:
-            error_msg = f"SMTP error: {str(e)}"
-            logger.error(error_msg)
-            return {"success": False, "error": error_msg}
-        
-        except OSError as e:
-            # Network errors (Errno 101 - Network unreachable)
-            error_msg = f"Network error: {str(e)}. This often happens on Render's free tier which blocks SMTP ports. Consider upgrading to Starter plan or using SendGrid."
-            logger.error(error_msg)
-            return {"success": False, "error": error_msg}
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.api_url,
+                    json=payload,
+                    headers=headers,
+                    timeout=30.0
+                )
+                
+                if response.status_code == 200:
+                    logger.info(f"Email sent successfully to {to_email}")
+                    return {"success": True, "error": None}
+                else:
+                    error_msg = f"Resend API error: {response.status_code} - {response.text}"
+                    logger.error(error_msg)
+                    return {"success": False, "error": error_msg}
         
         except Exception as e:
-            error_msg = f"Unexpected error sending email: {str(e)}"
+            error_msg = f"Error sending email via Resend: {str(e)}"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
     
@@ -197,19 +163,6 @@ class EmailService:
     ) -> Dict:
         """
         Send email with idempotency check and logging
-        
-        Args:
-            email_type: Type of email (DAILY_SUMMARY, FEE_DUE, etc.)
-            recipient_email: Recipient email address
-            recipient_name: Recipient name
-            subject: Email subject
-            html_body: HTML email body
-            idempotency_key: Optional idempotency key
-            reference_type: Optional reference type
-            reference_id: Optional reference ID
-            
-        Returns:
-            dict: {success: bool, skipped: bool, error: str, event_id: str}
         """
         # Check idempotency
         if idempotency_key:
@@ -224,7 +177,7 @@ class EmailService:
                 }
         
         # Send email
-        send_result = self.send_smtp_email(
+        send_result = await self.send_resend_email(
             to_email=recipient_email,
             to_name=recipient_name,
             subject=subject,
@@ -255,4 +208,4 @@ class EmailService:
 
 
 # Singleton instance
-email_service = EmailService()
+resend_email_service = ResendEmailService()

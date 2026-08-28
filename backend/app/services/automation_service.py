@@ -10,6 +10,7 @@ from app.utils.timezone_utils import get_ist_today, get_ist_day_of_week, format_
 from app.utils.idempotency import generate_daily_summary_key
 from app.templates.email_templates import daily_class_summary_template
 from app.services.email_service import email_service
+from app.services.resend_email_service import resend_email_service
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -227,7 +228,12 @@ class AutomationService:
         try:
             # Check idempotency
             idempotency_key = generate_daily_summary_key(summary_date)
-            already_sent = await email_service.check_idempotency(idempotency_key)
+            
+            # Choose email service (Resend or SMTP)
+            email_svc = resend_email_service if settings.USE_RESEND else email_service
+            logger.info(f"Using email service: {'Resend' if settings.USE_RESEND else 'SMTP'}")
+            
+            already_sent = await email_svc.check_idempotency(idempotency_key)
             
             if already_sent:
                 logger.info(f"Daily summary already sent for {summary_date}")
@@ -269,7 +275,7 @@ class AutomationService:
                 }
             
             # Send email
-            email_result = await email_service.send_email(
+            email_result = await email_svc.send_email(
                 email_type='DAILY_SUMMARY',
                 recipient_email=admin_email,
                 recipient_name='Admin',

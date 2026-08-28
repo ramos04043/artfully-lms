@@ -92,6 +92,10 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = "noreply@artstudio.com"
     SMTP_FROM_NAME: str = "Artfully"
     
+    # Resend (Alternative to SMTP for Render free tier)
+    RESEND_API_KEY: str = ""
+    USE_RESEND: bool = False  # Set to True to use Resend instead of SMTP
+    
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"  # Optional - only needed if using Celery
     
