@@ -17,6 +17,16 @@ interface FinancialTransaction {
   created_at: string
 }
 
+interface Payment {
+  id: string
+  student_id: string
+  student_name: string
+  student_ref_id: string
+  amount: number
+  payment_mode: string
+  transaction_id?: string
+}
+
 interface FinancialAccount {
   id: string
   account_type: string
@@ -37,6 +47,7 @@ interface EnrollmentInfo {
 
 export default function FeesPage() {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
   const [accounts, setAccounts] = useState<FinancialAccount[]>([])
   const [enrollments, setEnrollments] = useState<EnrollmentInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -108,17 +119,61 @@ export default function FeesPage() {
       if (enrollError) throw enrollError
       setEnrollments(enrollmentsData || [])
 
-      // Load fee transactions (REVENUE type with STUDENT_FEES category, plus legacy INFLOW)
+      // Load payments to match with transactions
+      const { data: paymentsData, error: paymentsError } = await db
+        .from('payments')
+        .select('id, student_id, student_name, student_ref_id, amount, payment_mode, transaction_id')
+        .order('created_at', { ascending: false })
+
+      if (paymentsError) throw paymentsError
+      setPayments(paymentsData || [])
+      console.log('💳 Payments loaded:', paymentsData)
+
+      // Load fee transactions - Try simpler query first
       const { data: transactionsData, error: transactionsError } = await db
         .from('financial_transactions')
         .select('*')
-        .in('transaction_type', ['REVENUE', 'INFLOW'])  // Support both for transition
-        .or('category.eq.STUDENT_FEES,category.eq.FEE_COLLECTION,category.is.null')  // Support multiple category names and legacy null
-        .eq('status', 'ACTIVE')  // Only show ACTIVE transactions
+        .eq('transaction_type', 'REVENUE')
+        .eq('status', 'ACTIVE')
         .order('transaction_date', { ascending: false })
 
-      if (transactionsError) throw transactionsError
-      setTransactions(transactionsData || [])
+      if (transactionsError) {
+        console.error('❌ Query error:', transactionsError)
+        throw transactionsError
+      }
+      
+      console.log('📊 All REVENUE transactions:', transactionsData)
+      
+      // Also try to get INFLOW transactions separately
+      const { data: inflowData, error: inflowError } = await db
+        .from('financial_transactions')
+        .select('*')
+        .eq('transaction_type', 'INFLOW')
+        .eq('status', 'ACTIVE')
+        .order('transaction_date', { ascending: false })
+      
+      if (!inflowError && inflowData) {
+        console.log('📊 All INFLOW transactions:', inflowData)
+      }
+      
+      // Combine both
+      const allTransactions = [...(transactionsData || []), ...(inflowData || [])]
+      console.log('📊 Combined transactions:', allTransactions)
+      
+      // Filter to only show student fee payments
+      const feeTransactions = allTransactions.filter(t => {
+        const isFeePayment = t.reference_type === 'FEE_PAYMENT' || 
+                            t.category === 'STUDENT_FEES' || 
+                            t.category === 'FEE_COLLECTION'
+        if (isFeePayment) {
+          console.log(`✅ Fee transaction found: ${t.id}, category=${t.category}, ref_type=${t.reference_type}`)
+        }
+        return isFeePayment
+      })
+      
+      console.log('💰 Filtered fee transactions:', feeTransactions)
+      
+      setTransactions(feeTransactions)
     } catch (err: any) {
       console.error('Error loading data:', err)
       setError(err.message || 'Failed to load data')
@@ -342,26 +397,35 @@ export default function FeesPage() {
     }
   }
 
-  // Get student info from reference_id
-  const getStudentInfo = (referenceId?: string) => {
-    if (!referenceId) {
-      return {
-        name: 'Unknown Student',
-        studentId: '-',
-        phone: '-',
+  // Get student info from transaction reference_id (which is payment_id)
+  const getStudentInfo = (transaction: FinancialTransaction) => {
+    // For FEE_PAYMENT transactions, reference_id is the payment ID
+    if (transaction.reference_type === 'FEE_PAYMENT' && transaction.reference_id) {
+      const payment = payments.find(p => p.id === transaction.reference_id)
+      if (payment) {
+        return {
+          name: payment.student_name,
+          studentId: payment.student_ref_id,
+          phone: '-', // Payment doesn't store phone
+        }
       }
     }
-    const enrollment = enrollments.find((e) => e.id === referenceId)
-    if (enrollment) {
-      return {
-        name: `${enrollment.student_first_name} ${enrollment.student_last_name}`,
-        studentId: enrollment.student_id,
-        phone: enrollment.student_phone,
+    
+    // Fallback: try to find in enrollments (for legacy transactions)
+    if (transaction.reference_id) {
+      const enrollment = enrollments.find((e) => e.id === transaction.reference_id)
+      if (enrollment) {
+        return {
+          name: `${enrollment.student_first_name} ${enrollment.student_last_name}`,
+          studentId: enrollment.student_id,
+          phone: enrollment.student_phone,
+        }
       }
     }
+    
     return {
       name: 'Unknown Student',
-      studentId: referenceId,
+      studentId: transaction.reference_id || '-',
       phone: '-',
     }
   }
@@ -767,7 +831,7 @@ export default function FeesPage() {
                 </tr>
               ) : (
                 filteredTransactions.map((transaction) => {
-                  const studentInfo = getStudentInfo(transaction.reference_id)
+                  const studentInfo = getStudentInfo(transaction)
                   const paymentMode = getPaymentMode(transaction.account_id)
                   const isEditing = editingTransactionId === transaction.id
 
