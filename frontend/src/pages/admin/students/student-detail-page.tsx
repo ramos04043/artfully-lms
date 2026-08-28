@@ -190,56 +190,51 @@ export default function StudentDetailsPage() {
       setSaving(true)
       setError('')
 
-      // Update basic student info (these fields exist in students table through the view)
-      const { error: updateError } = await db
-        .from('enrollments')
-        .update({
-          student_first_name: editData.student_first_name,
-          student_last_name: editData.student_last_name,
-          student_date_of_birth: editData.student_date_of_birth,
-          student_gender: editData.student_gender,
-          student_email: editData.student_email,
-          student_phone: editData.student_phone,
-          student_address: editData.student_address,
-          student_school_name: editData.student_school_name,
-          student_grade: editData.student_grade,
-          parent_first_name: editData.parent_first_name,
-          parent_last_name: editData.parent_last_name,
-          parent_relationship: editData.parent_relationship,
-          parent_phone: editData.parent_phone,
-          parent_email: editData.parent_email,
-        })
-        .eq('id', id)
-
-      if (updateError) throw updateError
-
-      // Handle batch changes by updating the batch_ids array in enrollments table
-      // The enrollments table stores batch_ids as an array, so we just update that directly
-      if (student && editData.batch_ids) {
-        const originalBatchIds = student.batch_ids || []
-        const newBatchIds = editData.batch_ids
-        
-        // Check if batches have changed
-        const batchesChanged = JSON.stringify(originalBatchIds.sort()) !== JSON.stringify(newBatchIds.sort())
-        
-        if (batchesChanged) {
-          console.log('Updating batch_ids from:', originalBatchIds, 'to:', newBatchIds)
-          
-          // Update the batch_ids array in enrollments table
-          const { error: batchUpdateError } = await db
-            .from('enrollments')
-            .update({ batch_ids: newBatchIds })
-            .eq('id', id)
-            .execute()
-          
-          if (batchUpdateError) {
-            console.error('Error updating batches:', batchUpdateError)
-            throw new Error(`Failed to update batches: ${batchUpdateError.message || batchUpdateError}`)
-          }
-          
-          console.log('Successfully updated batch_ids')
-        }
+      // Use backend API endpoint for updating enrollment
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      
+      // Get ZendBX token for authentication
+      const token = localStorage.getItem('zendbx_token')
+      
+      const updateData = {
+        student_id: editData.student_id,
+        student_first_name: editData.student_first_name,
+        student_last_name: editData.student_last_name,
+        student_date_of_birth: editData.student_date_of_birth,
+        student_gender: editData.student_gender,
+        student_email: editData.student_email,
+        student_phone: editData.student_phone,
+        student_address: editData.student_address,
+        student_school_name: editData.student_school_name,
+        student_grade: editData.student_grade,
+        parent_first_name: editData.parent_first_name,
+        parent_last_name: editData.parent_last_name,
+        parent_relationship: editData.parent_relationship,
+        parent_phone: editData.parent_phone,
+        parent_email: editData.parent_email,
+        batch_ids: editData.batch_ids || [],
+        status: editData.status || student?.status || 'ACTIVE',
       }
+
+      console.log('Updating enrollment:', id, 'with data:', updateData)
+
+      const response = await fetch(`${API_URL}/api/enrollment/enrollments/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify(updateData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Update error:', errorData)
+        throw new Error(errorData.detail || `HTTP ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('Update result:', result)
 
       setSuccess('Student details updated successfully')
       setIsEditing(false)
@@ -247,7 +242,7 @@ export default function StudentDetailsPage() {
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
       console.error('Error updating student:', err)
-      setError(err.message)
+      setError(err.message || 'Failed to update student')
     } finally {
       setSaving(false)
     }
@@ -511,6 +506,26 @@ export default function StudentDetailsPage() {
             </h2>
 
             <div className="grid grid-cols-2 gap-4">
+              {/* Student ID - Now Editable */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Student ID
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData.student_id || ''}
+                    onChange={(e) =>
+                      setEditData({ ...editData, student_id: e.target.value })
+                    }
+                    placeholder="e.g., ART1001"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900 font-medium">{student.student_id}</p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   First Name

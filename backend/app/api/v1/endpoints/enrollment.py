@@ -72,6 +72,49 @@ async def create_enrollment(enrollment: EnrollmentCreate):
             raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.patch("/enrollments/{enrollment_id}")
+async def update_enrollment(enrollment_id: str, enrollment: EnrollmentCreate):
+    """Update an existing enrollment"""
+    import httpx
+    
+    zendbx_url = os.getenv('ZENDBX_URL', 'https://api.zendbx.in')
+    zendbx_key = os.getenv('ZENDBX_SERVICE_KEY')
+    project_slug = 'artfully-database'
+    
+    if not zendbx_key:
+        raise HTTPException(status_code=500, detail="ZendBX service key not configured")
+    
+    url = f"{zendbx_url}/p/{project_slug}/v1/rest/enrollments?id=eq.{enrollment_id}"
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'apikey': zendbx_key,
+        'Authorization': f'Bearer {zendbx_key}',
+        'Prefer': 'return=representation'
+    }
+    
+    # Convert enrollment model to dict and handle date serialization
+    enrollment_data = enrollment.dict()
+    if enrollment_data.get('student_date_of_birth'):
+        enrollment_data['student_date_of_birth'] = enrollment_data['student_date_of_birth'].isoformat() if enrollment_data['student_date_of_birth'] else None
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.patch(url, json=enrollment_data, headers=headers, timeout=30.0)
+            
+            if response.status_code >= 400:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"ZendBX error: {response.text}"
+                )
+            
+            return response.json() if response.text else {"success": True}
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.patch("/enrollments/{enrollment_id}/status")
 async def update_enrollment_status(enrollment_id: str, status_update: EnrollmentStatusUpdate):
     """
