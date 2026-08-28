@@ -1,7 +1,7 @@
 """
 Automation Service for daily class summary
 """
-from datetime import date
+from datetime import date, datetime
 from typing import List, Dict, Optional
 import logging
 
@@ -143,8 +143,32 @@ class AutomationService:
                             except Exception as e:
                                 logger.warning(f"Error fetching student {student_id}: {e}")
                     
-                    # Format time (batch has start_time as time object)
-                    time_str = format_time_12hr(batch['start_time']) if batch.get('start_time') else "Time TBD"
+                    # Format time (batch has start_time as time object or string)
+                    if batch.get('start_time'):
+                        start_time = batch['start_time']
+                        # Handle if start_time is a string (parse it to time object)
+                        if isinstance(start_time, str):
+                            try:
+                                from datetime import datetime
+                                # Try parsing common time formats
+                                for fmt in ['%H:%M:%S', '%H:%M', '%I:%M %p']:
+                                    try:
+                                        parsed_time = datetime.strptime(start_time, fmt).time()
+                                        time_str = format_time_12hr(parsed_time)
+                                        break
+                                    except ValueError:
+                                        continue
+                                else:
+                                    # If no format matches, use the string as-is
+                                    time_str = start_time
+                            except Exception as e:
+                                logger.warning(f"Error parsing time string '{start_time}': {e}")
+                                time_str = start_time
+                        else:
+                            # It's already a time object
+                            time_str = format_time_12hr(start_time)
+                    else:
+                        time_str = "Time TBD"
                     
                     class_info = {
                         'time': time_str,
