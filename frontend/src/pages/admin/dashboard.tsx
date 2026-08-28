@@ -9,7 +9,6 @@ import { Calendar, Users, Wallet, TrendingUp, Clock, X } from 'lucide-react'
 interface DashboardStats {
   todaysBatches: number
   activeStudents: number
-  pendingFees: number
   attendanceToday: number
 }
 
@@ -37,7 +36,6 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     todaysBatches: 0,
     activeStudents: 0,
-    pendingFees: 0,
     attendanceToday: 0,
   })
   const [todaysClasses, setTodaysClasses] = useState<TodayClass[]>([])
@@ -89,14 +87,6 @@ export default function AdminDashboard() {
 
     const activeStudents = enrollments?.length || 0
 
-    // Get total pending fees from fee_dues table (sum of amount_pending)
-    const { data: feeDues } = await db
-      .from('fee_dues')
-      .select('amount_pending')
-      .in('status', ['PENDING', 'PARTIAL'])
-
-    const pendingFees = feeDues?.reduce((sum, fee) => sum + (fee.amount_pending || 0), 0) || 0
-
     // Get today's attendance rate
     const { data: todayAttendance } = await db
       .from('attendance')
@@ -110,7 +100,6 @@ export default function AdminDashboard() {
     console.log('📊 Dashboard Stats:', {
       todaysBatches,
       activeStudents,
-      pendingFees,
       attendanceToday: attendanceRate,
       todayAttendanceData: { totalMarked, presentCount }
     })
@@ -118,7 +107,6 @@ export default function AdminDashboard() {
     return {
       todaysBatches,
       activeStudents,
-      pendingFees,
       attendanceToday: attendanceRate,
     }
   }
@@ -224,7 +212,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
         <div 
           onClick={() => navigate('/admin/batches')}
           className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-soft-indigo cursor-pointer hover:shadow-lg hover:border-art-indigo transition-all"
@@ -247,18 +235,6 @@ export default function AdminDashboard() {
           </div>
           <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.activeStudents}</p>
           <p className="text-xs text-green-600 mt-2 font-medium">Click to view →</p>
-        </div>
-        
-        <div 
-          onClick={() => navigate('/admin/fees')}
-          className="p-4 md:p-6 rounded-lg bg-white border border-border gradient-peach cursor-pointer hover:shadow-lg hover:border-orange-600 transition-all"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Wallet className="w-4 h-4 md:w-5 md:h-5 text-orange-600" />
-            <p className="text-xs md:text-sm text-muted-foreground">Pending Fees</p>
-          </div>
-          <p className="text-xl md:text-3xl font-bold text-foreground">₹{stats.pendingFees.toLocaleString()}</p>
-          <p className="text-xs text-orange-600 mt-2 font-medium">Click to view →</p>
         </div>
         
         <div 
