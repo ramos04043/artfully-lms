@@ -80,6 +80,8 @@ export default function ExpensesPage() {
   const [filterAccountType, setFilterAccountType] = useState<string>('all')
   const [filterPaymentMode, setFilterPaymentMode] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   // Categories loaded from API
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
@@ -398,8 +400,13 @@ export default function ExpensesPage() {
     const matchesAccountType = filterAccountType === 'all' || account?.account_type === filterAccountType
     const matchesPaymentMode = filterPaymentMode === 'all' || expense.payment_mode === filterPaymentMode
     const matchesCategory = filterCategory === 'all' || expense.category === filterCategory
+    
+    // Date filtering
+    const expenseDate = new Date(expense.expense_date)
+    const matchesStartDate = !startDate || new Date(expense.expense_date) >= new Date(startDate + 'T00:00:00')
+    const matchesEndDate = !endDate || new Date(expense.expense_date) <= new Date(endDate + 'T23:59:59')
 
-    return matchesSearch && matchesAccountType && matchesPaymentMode && matchesCategory
+    return matchesSearch && matchesAccountType && matchesPaymentMode && matchesCategory && matchesStartDate && matchesEndDate
   })
   
   console.log(`Filtered expenses: ${filteredExpenses.length} (from ${expenses.length} total, ${expenses.length - filteredExpenses.length} filtered out)`)
@@ -726,6 +733,28 @@ export default function ExpensesPage() {
               ))}
             </select>
           </div>
+
+          {/* Start Date Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+            />
+          </div>
+
+          {/* End Date Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+            />
+          </div>
         </div>
 
         <button
@@ -734,6 +763,8 @@ export default function ExpensesPage() {
             setFilterAccountType('all')
             setFilterPaymentMode('all')
             setFilterCategory('all')
+            setStartDate('')
+            setEndDate('')
           }}
           className="mt-4 px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
         >

@@ -76,6 +76,8 @@ export default function FeesPage() {
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
   const [filterMode, setFilterMode] = useState<string>('all')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
     loadData()
@@ -438,7 +440,7 @@ export default function FeesPage() {
 
   // Filter transactions
   const filteredTransactions = transactions.filter((transaction) => {
-    const studentInfo = getStudentInfo(transaction.reference_id)
+    const studentInfo = getStudentInfo(transaction)
     const matchesSearch =
       searchQuery === '' ||
       studentInfo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -447,8 +449,12 @@ export default function FeesPage() {
 
     const paymentMode = getPaymentMode(transaction.account_id)
     const matchesMode = filterMode === 'all' || paymentMode === filterMode
+    
+    // Date filtering
+    const matchesStartDate = !startDate || new Date(transaction.transaction_date) >= new Date(startDate + 'T00:00:00')
+    const matchesEndDate = !endDate || new Date(transaction.transaction_date) <= new Date(endDate + 'T23:59:59')
 
-    return matchesSearch && matchesMode
+    return matchesSearch && matchesMode && matchesStartDate && matchesEndDate
   })
 
   // Calculate stats
@@ -736,7 +742,7 @@ export default function FeesPage() {
           <h2 className="text-lg font-semibold text-gray-900">Search & Filters</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -766,18 +772,26 @@ export default function FeesPage() {
             </select>
           </div>
 
-          {/* Status Filter */}
+          {/* Start Date Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Payment Mode</label>
-            <select
-              value={filterMode}
-              onChange={(e) => setFilterMode(e.target.value)}
+            <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
-            >
-              <option value="all">All Modes</option>
-              <option value="BANK">Bank Transfer</option>
-              <option value="CASH">Cash</option>
-            </select>
+            />
+          </div>
+
+          {/* End Date Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
+            />
           </div>
         </div>
 
@@ -785,6 +799,8 @@ export default function FeesPage() {
           onClick={() => {
             setSearchQuery('')
             setFilterMode('all')
+            setStartDate('')
+            setEndDate('')
           }}
           className="mt-4 px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
         >
