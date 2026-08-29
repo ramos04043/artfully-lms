@@ -707,95 +707,113 @@ VALUES ('${finalBatchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'
         </>
       )}
 
-      {/* Advanced Students View */}
+      {/* Advanced Batches View - Now shows batches like Foundation */}
       {activeTab === 'advanced' && (
-        <div className="space-y-6">
-          {/* Group by day */}
-          {['MONDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map((day) => {
-            const studentsForDay = advancedStudents.filter(s => s.days.includes(day))
-            if (studentsForDay.length === 0) return null
+        <>
+          <div className="space-y-6">
+            {['MONDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map((day) => {
+              // Filter batches for this day and Advanced programme
+              const dayBatches = batches.filter(b => {
+                const programme = programmes.find(p => p.id === b.programme_id)
+                return b.day_of_week === day && programme?.name === 'Advanced Art'
+              })
+              
+              if (dayBatches.length === 0) return null
 
-            return (
-              <div key={day} className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  {day}
-                  <span className="ml-3 text-sm font-normal text-gray-600">
-                    ({studentsForDay.length} {studentsForDay.length === 1 ? 'student' : 'students'})
-                  </span>
-                </h2>
+              return (
+                <div key={day} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="bg-purple-50 px-6 py-4 border-b border-purple-100">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {day}
+                      <span className="ml-3 text-sm font-normal text-gray-600">
+                        ({dayBatches.length} {dayBatches.length === 1 ? 'batch' : 'batches'})
+                      </span>
+                    </h3>
+                  </div>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {studentsForDay.map((student) => (
-                    <div
-                      key={student.id}
-                      className="p-4 border-2 border-purple-200 rounded-lg bg-purple-50/30"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center">
-                          <span className="text-purple-700 font-semibold text-lg">
-                            {student.student_first_name[0]}
-                            {student.student_last_name[0]}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">
-                            {student.student_first_name} {student.student_last_name}
-                          </p>
-                          <p className="text-sm text-gray-600">{student.student_id}</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-sm">
-                          <span className="text-gray-600">Grade:</span>{' '}
-                          <span className="font-medium text-gray-900">{student.grade || 'N/A'}</span>
-                        </div>
-
-                        <div className="text-sm">
-                          <span className="text-gray-600">Attending:</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {student.days.map((d) => (
-                              <span
-                                key={d}
-                                className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium"
-                              >
-                                {d.slice(0, 3)}
+                  <div className="divide-y divide-gray-200">
+                    {dayBatches.map((batch) => (
+                      <div
+                        key={batch.id}
+                        onClick={() => handleBatchClick(batch)}
+                        className="p-6 hover:bg-purple-50/50 cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="text-lg font-semibold text-gray-900">
+                                {batch.name}
+                              </h4>
+                              <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                                Advanced Art
                               </span>
-                            ))}
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-4 h-4" />
+                                <span>
+                                  {batch.start_time} - {batch.end_time}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center gap-1.5">
+                                <Users className="w-4 h-4" />
+                                <span>
+                                  {batch.enrolled_count} / {batch.max_capacity}
+                                </span>
+                              </div>
+                              
+                              <div
+                                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  batch.remaining_capacity > 5
+                                    ? 'bg-green-100 text-green-700'
+                                    : batch.remaining_capacity > 0
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-red-100 text-red-700'
+                                }`}
+                              >
+                                {batch.remaining_capacity > 0
+                                  ? `${batch.remaining_capacity} spots available`
+                                  : 'Full'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleBatchClick(batch)
+                              }}
+                              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+                            >
+                              <Users className="w-4 h-4" />
+                              View Students
+                            </button>
                           </div>
                         </div>
-
-                        <div>
-                          <span
-                            className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
-                              student.status === 'ACTIVE'
-                                ? 'bg-green-100 text-green-800'
-                                : student.status === 'PAUSED'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {student.status}
-                          </span>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
 
-          {advancedStudents.length === 0 && (
+          {batches.filter(b => {
+            const programme = programmes.find(p => p.id === b.programme_id)
+            return programme?.name === 'Advanced Art'
+          }).length === 0 && (
             <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
               <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No advanced students found
+                No Advanced batches found
               </h3>
-              <p className="text-gray-600">Advanced students will appear here once enrolled</p>
+              <p className="text-gray-600">Advanced batches will appear here once created</p>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Create Batch Modal */}
@@ -1044,52 +1062,68 @@ VALUES ('${finalBatchName}', '${programmeId}', '${dayOfWeek}', '${startTime}:00'
                           </span>
                         </div>
                         
-                        <div className="ml-4 min-w-[240px]">
-                          <label className="text-xs text-gray-600 block mb-1">
-                            {currentBatchId ? 'Change Batch:' : 'Assign to Batch:'}
-                          </label>
-                          <select
-                            value={currentBatchId || ''}
-                            onChange={(e) => {
-                              const newBatchId = e.target.value
-                              if (newBatchId && newBatchId !== currentBatchId) {
-                                // If student has a batch, change it. If not, assign new batch
-                                if (currentBatchId) {
-                                  confirmReassignStudent(student.id, student, newBatchId)
-                                } else {
-                                  confirmAssignStudent(student.id, student, newBatchId)
+                        <div className="flex items-end gap-3">
+                          <div className="min-w-[240px]">
+                            <label className="text-xs text-gray-600 block mb-1">
+                              {currentBatchId ? 'Change Batch:' : 'Assign to Batch:'}
+                            </label>
+                            <select
+                              value={currentBatchId || ''}
+                              onChange={(e) => {
+                                const newBatchId = e.target.value
+                                if (newBatchId && newBatchId !== currentBatchId) {
+                                  // If student has a batch, change it. If not, assign new batch
+                                  if (currentBatchId) {
+                                    confirmReassignStudent(student.id, student, newBatchId)
+                                  } else {
+                                    confirmAssignStudent(student.id, student, newBatchId)
+                                  }
                                 }
-                              }
-                            }}
-                            disabled={reassigningStudent === student.id}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-art-indigo focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                              }}
+                              disabled={reassigningStudent === student.id}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-art-indigo focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {!currentBatchId && <option value="">-- Not Assigned --</option>}
+                              <optgroup label="Same Day Batches">
+                                {allBatches
+                                  .filter(b => b.day_of_week === selectedBatch.day_of_week)
+                                  .map((batch) => (
+                                    <option key={batch.id} value={batch.id}>
+                                      {batch.name} • {batch.start_time} • {batch.remaining_capacity} spots
+                                    </option>
+                                  ))}
+                              </optgroup>
+                              <optgroup label="Other Day Batches">
+                                {allBatches
+                                  .filter(b => b.day_of_week !== selectedBatch.day_of_week)
+                                  .map((batch) => (
+                                    <option key={batch.id} value={batch.id}>
+                                      {batch.name} • {batch.day_of_week} • {batch.start_time} • {batch.remaining_capacity} spots
+                                    </option>
+                                  ))}
+                              </optgroup>
+                            </select>
+                            {reassigningStudent === student.id && (
+                              <p className="text-xs text-art-indigo mt-1 flex items-center gap-1">
+                                <span className="inline-block w-3 h-3 border-2 border-art-indigo border-t-transparent rounded-full animate-spin"></span>
+                                Processing...
+                              </p>
+                            )}
+                          </div>
+                          
+                          <a
+                            href={`/admin/students/${student.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+                            title="View student details in new tab"
                           >
-                            {!currentBatchId && <option value="">-- Not Assigned --</option>}
-                            <optgroup label="Same Day Batches">
-                              {allBatches
-                                .filter(b => b.day_of_week === selectedBatch.day_of_week)
-                                .map((batch) => (
-                                  <option key={batch.id} value={batch.id}>
-                                    {batch.name} • {batch.start_time} • {batch.remaining_capacity} spots
-                                  </option>
-                                ))}
-                            </optgroup>
-                            <optgroup label="Other Day Batches">
-                              {allBatches
-                                .filter(b => b.day_of_week !== selectedBatch.day_of_week)
-                                .map((batch) => (
-                                  <option key={batch.id} value={batch.id}>
-                                    {batch.name} • {batch.day_of_week} • {batch.start_time} • {batch.remaining_capacity} spots
-                                  </option>
-                                ))}
-                            </optgroup>
-                          </select>
-                          {reassigningStudent === student.id && (
-                            <p className="text-xs text-art-indigo mt-1 flex items-center gap-1">
-                              <span className="inline-block w-3 h-3 border-2 border-art-indigo border-t-transparent rounded-full animate-spin"></span>
-                              Processing...
-                            </p>
-                          )}
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View
+                          </a>
                         </div>
                       </div>
                     )

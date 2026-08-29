@@ -223,8 +223,34 @@ export default function EnrollmentPage() {
       console.log('Student data:', { firstName, studentId })
 
       // Convert batch IDs to array format for PostgreSQL
-      // Advanced students don't have batches
-      const batchIdsArray = classLevel === 'FOUNDATION' ? selectedBatches : []
+      let batchIdsArray: string[] = []
+      
+      if (classLevel === 'FOUNDATION') {
+        // Foundation students: use selected batches
+        batchIdsArray = selectedBatches
+      } else if (classLevel === 'ADVANCED') {
+        // Advanced students: find Advanced batches for their selected days
+        console.log('Finding Advanced batches for days:', selectedDays)
+        
+        const { data: advancedBatches, error: batchError } = await db
+          .from('batches')
+          .select('id, day_of_week, programmes(name)')
+          .eq('is_active', true)
+        
+        if (batchError) {
+          console.error('Error fetching Advanced batches:', batchError)
+          throw new Error('Failed to fetch Advanced batches')
+        }
+        
+        // Filter to only Advanced Art batches that match selected days
+        const matchingBatches = (advancedBatches || []).filter(batch => {
+          const programmeName = batch.programmes?.name || ''
+          return programmeName === 'Advanced Art' && selectedDays.includes(batch.day_of_week)
+        })
+        
+        batchIdsArray = matchingBatches.map(b => b.id)
+        console.log('Assigned Advanced batches:', matchingBatches.map(b => `${b.day_of_week} (${b.id})`))
+      }
 
       // Create enrollment in single table
       console.log('Inserting enrollment...')
@@ -238,7 +264,7 @@ export default function EnrollmentPage() {
         student_email: email || null,
         student_phone: phone || null,
         student_address: address || null,
-        student_school_name: classLevel === 'ADVANCED' ? selectedDays.join(',') : schoolName || null, // Store days in school_name for Advanced
+        student_school_name: classLevel === 'ADVANCED' ? selectedDays.join(',') : schoolName || null, // Store days in school_name for Advanced (still needed for backend matching)
         student_grade: `${classLevel}|${grade}`, // Store class level with grade
         parent_first_name: parentFirstName,
         parent_last_name: parentLastName || '',

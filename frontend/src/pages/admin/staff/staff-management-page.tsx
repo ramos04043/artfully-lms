@@ -32,6 +32,7 @@ interface Batch {
   start_time: string
   end_time: string
   programme_id: string
+  programme_name?: string  // Add programme name for display
 }
 
 interface StaffBatch {
@@ -40,6 +41,11 @@ interface StaffBatch {
   batch_id: string
   is_active: boolean
   assigned_at: string
+}
+
+interface StaffProgramme {
+  staff_id: string
+  programme_type: 'FOUNDATION' | 'ADVANCED'
 }
 
 export default function StaffManagementPage() {
@@ -124,7 +130,21 @@ export default function StaffManagementPage() {
         .order('day_of_week', { ascending: true })
 
       if (batchError) throw batchError
-      setBatches((batchesData || []) as Batch[])
+      
+      // Load programmes to get names
+      const { data: programmesData } = await db
+        .from('programmes')
+        .select('id, name')
+        .eq('is_active', true)
+      
+      // Map programme names to batches
+      const programmeMap = new Map(programmesData?.map(p => [p.id, p.name]) || [])
+      const batchesWithProgrammes = (batchesData || []).map(batch => ({
+        ...batch,
+        programme_name: programmeMap.get(batch.programme_id) || 'Unknown'
+      }))
+      
+      setBatches(batchesWithProgrammes as Batch[])
 
       // Load staff-batch assignments
       const { data: staffBatchesData, error: sbError } = await db
@@ -165,6 +185,7 @@ export default function StaffManagementPage() {
         .map((sb) => sb.batch_id)
       
       setSelectedBatchIds(assignedBatches)
+      
       setShowAssignModal(true)
     } catch (err: any) {
       console.error('Error opening assign modal:', err)
@@ -188,8 +209,9 @@ export default function StaffManagementPage() {
       setError('')
       setSuccess('')
 
-      console.log('?? Assigning batches via backend API for staff:', selectedStaff.id)
+      console.log('📋 Assigning batches and Advanced programme for staff:', selectedStaff.id)
       
+      // Send batch assignments to backend
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/staff/${selectedStaff.id}/batches`, {
         method: 'POST',
         headers: {
@@ -207,9 +229,9 @@ export default function StaffManagementPage() {
       }
 
       const result = await response.json()
-      console.log('? Batches assigned:', result)
+      console.log('✅ Batches assigned:', result)
 
-      setSuccess(`Batches updated for ${selectedStaff.first_name} ${selectedStaff.last_name}`)
+      setSuccess(`Assignments updated for ${selectedStaff.first_name} ${selectedStaff.last_name}`)
       setShowAssignModal(false)
       setSelectedStaff(null)
       setSelectedBatchIds([])
@@ -505,19 +527,24 @@ export default function StaffManagementPage() {
                           )}
                         </div>
                         
-                        {/* Assigned Batches */}
+                        {/* Assigned Batches & Programmes */}
                         <div className="mt-3">
                           <p className="text-xs text-gray-500 mb-2">
-                            Assigned Batches ({assignedBatches.length})
+                            Assignments
                           </p>
-                          {assignedBatches.length === 0 ? (
-                            <p className="text-sm text-gray-400 italic">No batches assigned</p>
+                          {assignedBatches.length === 0 && !JSON.parse(localStorage.getItem('staff_advanced_assignments') || '{}')[staffMember.id] ? (
+                            <p className="text-sm text-gray-400 italic">No assignments</p>
                           ) : (
                             <div className="flex flex-wrap gap-2">
+                              {/* Show all assigned batches */}
                               {assignedBatches.map((batch) => (
                                 <span
                                   key={batch.id}
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                    batch.programme_name?.toLowerCase().includes('advanced')
+                                      ? 'bg-purple-100 text-purple-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}
                                 >
                                   <Calendar className="w-3 h-3" />
                                   {batch.name} ({batch.day_of_week})
@@ -574,6 +601,11 @@ export default function StaffManagementPage() {
 
             {/* Modal Body */}
             <div className="p-4 md:p-6 overflow-y-auto flex-1">
+              {/* All Batches Section */}
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Assign Batches</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Select batches to assign. Includes both Foundation and Advanced batches.
+              </p>
               <div className="space-y-2">
                 {batches.map((batch) => {
                   const isSelected = selectedBatchIds.includes(batch.id)
@@ -599,9 +631,20 @@ export default function StaffManagementPage() {
                           {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">{batch.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">{batch.name}</p>
+                            {batch.programme_name && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                batch.programme_name.toLowerCase().includes('advanced') 
+                                  ? 'bg-purple-100 text-purple-700'
+                                  : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {batch.programme_name}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-600">
-                            {batch.day_of_week} � {batch.start_time} - {batch.end_time}
+                            {batch.day_of_week} · {batch.start_time} - {batch.end_time}
                           </p>
                         </div>
                       </div>

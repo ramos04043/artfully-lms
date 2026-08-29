@@ -503,10 +503,7 @@ async def get_my_batches(user_id: str, day_of_week: Optional[str] = None):
             filters={'staff_id': staff_id, 'is_active': True}
         )
         
-        if not assignments or len(assignments) == 0:
-            return []
-        
-        batch_ids = [a['batch_id'] for a in assignments]
+        batch_ids = [a['batch_id'] for a in assignments] if assignments else []
         
         # Build batch filters
         batch_filters = {'is_active': True}
@@ -521,11 +518,8 @@ async def get_my_batches(user_id: str, day_of_week: Optional[str] = None):
             order_by='start_time.asc'
         )
         
-        if not batches:
-            return []
-        
         # Filter to only assigned batches
-        assigned_batches = [b for b in batches if b['id'] in batch_ids]
+        assigned_batches = [b for b in (batches or []) if b['id'] in batch_ids]
         
         # For each batch, get programme name and student counts
         result = []
@@ -713,13 +707,26 @@ async def submit_batch_attendance(
                 detail="Access denied: You are not assigned to this batch"
             )
         
-        # Get enrolled students for validation from enrollments table
+        # Get batch info
+        batch = await db.select(
+            'batches',
+            columns='id, name, day_of_week, programme_id',
+            filters={'id': str(batch_id)},
+            limit=1
+        )
+        
+        if not batch or len(batch) == 0:
+            raise HTTPException(status_code=404, detail="Batch not found")
+        
+        batch_data = batch[0]
+        
+        # Get enrolled students from enrollments table
+        # Both Foundation and Advanced students are now assigned via batch_ids
         all_enrollments = await db.select(
             'enrollments',
             columns='student_id, batch_ids, status'
         )
         
-        # Filter to active enrollments that include this batch
         enrolled_student_ids = []
         if all_enrollments:
             for enrollment in all_enrollments:
@@ -893,6 +900,9 @@ async def get_batch_students(batch_id: UUID, user_id: str):
     SECURITY: Verifies that the staff member is assigned to this batch before returning students.
     This prevents staff from accessing batches they are not assigned to by changing the URL.
     
+    For Advanced batches: Returns all Advanced students who have selected this day
+    For Foundation batches: Returns students assigned to this specific batch
+    
     Query params:
     - user_id: The app_users.id of the logged-in staff member (required for security validation)
     """
@@ -958,42 +968,33 @@ async def get_batch_students(batch_id: UUID, user_id: str):
         batch_data['programmes'] = {'name': programme[0]['name'] if programme else 'Unknown'}
         
         # Get enrolled ACTIVE students from enrollments table
-        # Students are stored in enrollments table with batch_ids array
+        # Both Foundation and Advanced students are now assigned to batches via batch_ids
         logger.info(f"Querying enrollments table for batch {batch_id}")
+        
         all_enrollments = await db.select(
             'enrollments',
-            columns='id, student_id, student_first_name, student_last_name, status, batch_ids'
+            columns='id, student_id, student_first_name, student_last_name, status, batch_ids, student_grade, student_school_name'
         )
         
         logger.info(f"Found {len(all_enrollments) if all_enrollments else 0} total enrollments")
         
-        # Filter to only enrollments that include this batch in their batch_ids array
-        # and are ACTIVE
+        # Filter to students who have this batch in their batch_ids array and are ACTIVE
         enrolled_students = []
         if all_enrollments:
             for enrollment in all_enrollments:
                 batch_ids = enrollment.get('batch_ids')
                 status = enrollment.get('status')
                 
-                logger.info(f"Checking enrollment: student_id={enrollment.get('student_id')}, batch_ids={batch_ids}, status={status}")
-                
-                # Check if this batch_id is in the enrollment's batch_ids array
-                # and the enrollment is ACTIVE
-                if (batch_ids and 
-                    str(batch_id) in batch_ids and 
-                    status == 'ACTIVE'):
-                    
-                    logger.info(f"✅ Match found for student {enrollment.get('student_id')}")
-                    
+                # Check if this batch is in the student's batch_ids array
+                if batch_ids and str(batch_id) in batch_ids and status == 'ACTIVE':
                     enrolled_students.append({
-                        'id': enrollment['student_id'],  # Use student_id (e.g., "STU12345678")
+                        'id': enrollment['student_id'],
                         'student_id': enrollment['student_id'],
                         'first_name': enrollment['student_first_name'],
                         'last_name': enrollment['student_last_name'],
-                        'status': enrollment['status']
+                        'status': enrollment['status'],
                     })
-                else:
-                    logger.info(f"❌ No match: batch_id {batch_id} not in {batch_ids} or status not ACTIVE")
+                    logger.info(f"✅ Matched student: {enrollment.get('student_id')}")
         
         logger.info(f"Total enrolled students found: {len(enrolled_students)}")
         

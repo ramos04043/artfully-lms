@@ -146,36 +146,31 @@ export default function AdminDashboard() {
     setBatchStudents([])
     
     try {
-      // Query student_batches to get students in this specific batch
-      const { data: studentBatches, error } = await db
-        .from('student_batches')
-        .select(`
-          id,
-          student_id,
-          students!inner (
-            student_id,
-            first_name,
-            last_name,
-            status
-          )
-        `)
-        .eq('batch_id', batch.id)
-        .eq('is_active', true)
+      // Query enrollments table to get students in this specific batch
+      const { data: enrollments, error } = await db
+        .from('enrollments')
+        .select('id, student_id, student_first_name, student_last_name, status, batch_ids')
+        .eq('status', 'ACTIVE')
       
       if (error) {
         console.error('Error fetching students:', error)
         return
       }
 
-      // Transform the data to match the expected BatchStudent interface
-      const studentsInBatch = (studentBatches || []).map((sb: any) => ({
-        id: sb.id,
-        student_id: sb.students.student_id,
-        student_first_name: sb.students.first_name,
-        student_last_name: sb.students.last_name,
-        status: sb.students.status,
-      }))
+      // Filter to students who have this batch in their batch_ids array
+      const studentsInBatch = (enrollments || [])
+        .filter((enrollment: any) => 
+          enrollment.batch_ids && enrollment.batch_ids.includes(batch.id)
+        )
+        .map((enrollment: any) => ({
+          id: enrollment.id,
+          student_id: enrollment.student_id,
+          student_first_name: enrollment.student_first_name,
+          student_last_name: enrollment.student_last_name,
+          status: enrollment.status,
+        }))
       
+      console.log(`Found ${studentsInBatch.length} students in batch ${batch.batch_name}`)
       setBatchStudents(studentsInBatch)
     } catch (err) {
       console.error('Error loading batch students:', err)

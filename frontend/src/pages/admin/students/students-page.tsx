@@ -114,9 +114,6 @@ export default function StudentsPage() {
     ALL: students.length,
     ACTIVE: students.filter((s) => s.status === 'ACTIVE').length,
     PAUSED: students.filter((s) => s.status === 'PAUSED').length,
-    INACTIVE: students.filter((s) => s.status === 'INACTIVE').length,
-    LEFT: students.filter((s) => s.status === 'LEFT').length,
-    GRADUATED: students.filter((s) => s.status === 'GRADUATED').length,
   }
 
   const getStatusColor = (status: string) => {
@@ -168,7 +165,7 @@ export default function StudentsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {Object.entries(statusCounts).map(([status, count]) => (
             <button
               key={status}

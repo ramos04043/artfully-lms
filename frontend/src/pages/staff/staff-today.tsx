@@ -58,7 +58,7 @@ export default function StaffToday() {
         return
       }
 
-      // Call backend API instead of direct ZendBX query
+      // Call backend API - it will return all assigned batches including Advanced
       const response = await fetch(
         `${API_URL}/api/staff/me/batches?user_id=${user.id}&day_of_week=${selectedDay}`
       )
@@ -182,7 +182,9 @@ export default function StaffToday() {
                 </div>
 
                 {/* Programme */}
-                <p className="text-sm text-gray-600 mb-3">{batch.programme_name}</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-sm text-gray-600">{batch.programme_name}</p>
+                </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-3 gap-3">
