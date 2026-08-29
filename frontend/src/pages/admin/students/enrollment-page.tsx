@@ -232,9 +232,27 @@ export default function EnrollmentPage() {
         // Advanced students: find Advanced batches for their selected days
         console.log('Finding Advanced batches for days:', selectedDays)
         
+        // First, get the Advanced Art programme ID
+        const { data: advancedProgramme, error: progError } = await db
+          .from('programmes')
+          .select('id, name')
+          .eq('name', 'Advanced Art')
+          .eq('is_active', true)
+          .limit(1)
+        
+        if (progError || !advancedProgramme || advancedProgramme.length === 0) {
+          console.error('Error fetching Advanced Art programme:', progError)
+          throw new Error('Advanced Art programme not found')
+        }
+        
+        const advancedProgrammeId = advancedProgramme[0].id
+        console.log('Found Advanced Art programme:', advancedProgrammeId)
+        
+        // Now get batches for that programme
         const { data: advancedBatches, error: batchError } = await db
           .from('batches')
-          .select('id, day_of_week, programmes(name)')
+          .select('id, day_of_week, programme_id')
+          .eq('programme_id', advancedProgrammeId)
           .eq('is_active', true)
         
         if (batchError) {
@@ -242,10 +260,9 @@ export default function EnrollmentPage() {
           throw new Error('Failed to fetch Advanced batches')
         }
         
-        // Filter to only Advanced Art batches that match selected days
+        // Filter to only batches that match selected days
         const matchingBatches = (advancedBatches || []).filter(batch => {
-          const programmeName = batch.programmes?.name || ''
-          return programmeName === 'Advanced Art' && selectedDays.includes(batch.day_of_week)
+          return selectedDays.includes(batch.day_of_week)
         })
         
         batchIdsArray = matchingBatches.map(b => b.id)
