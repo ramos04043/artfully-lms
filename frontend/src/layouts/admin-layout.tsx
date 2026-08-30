@@ -21,6 +21,7 @@ import {
   ListTodo,
   Menu,
   X,
+  BarChart3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,7 @@ const navigation = [
   { name: 'Students', href: '/admin/students', icon: Users },
   { name: 'Batches', href: '/admin/batches', icon: Calendar },
   { name: 'Attendance', href: '/admin/attendance', icon: CheckSquare },
+  { name: 'Attendance Reports', href: '/admin/attendance/reports', icon: BarChart3 },
   { name: 'Compensation', href: '/admin/compensation', icon: Clock },
   { name: 'Expenses', href: '/admin/finance/expenses', icon: TrendingDown },
   { name: 'Revenue', href: '/admin/finance/revenue', icon: DollarSign },
