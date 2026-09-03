@@ -153,10 +153,13 @@ export default function EnrollmentPage() {
       return
     }
 
-    // Check if same day already selected
-    const selectedBatch = batches.find((b) => selectedBatches.includes(b.id))
-    if (selectedBatch && selectedBatch.day_of_week === dayOfWeek) {
-      setError('Cannot select two batches on the same day')
+    // Check if same day already selected in any of the already-selected batches
+    const alreadySelectedDays = batches
+      .filter(b => selectedBatches.includes(b.id))
+      .map(b => b.day_of_week)
+    
+    if (alreadySelectedDays.includes(dayOfWeek)) {
+      setError('Weekly limit reached: Cannot select two batches on the same day')
       setTimeout(() => setError(''), 3000)
       return
     }

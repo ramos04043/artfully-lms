@@ -46,6 +46,16 @@ export default function FinanceOverviewPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   
+  // OPEX Revenue & Expense totals
+  const [opexRevenue, setOpexRevenue] = useState(0)
+  const [opexExpense, setOpexExpense] = useState(0)
+  const [capexRevenue, setCapexRevenue] = useState(0)
+  const [capexExpense, setCapexExpense] = useState(0)
+  
+  // Expanded state for cards
+  const [opexExpanded, setOpexExpanded] = useState(false)
+  const [capexExpanded, setCapexExpanded] = useState(false)
+  
   // Delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null)
@@ -98,11 +108,69 @@ export default function FinanceOverviewPage() {
 
       setAccounts(accountsData || [])
       setRecentTransactions(transactionsResult.data || [])
+      
+      // Calculate OPEX and CAPEX revenue/expense totals
+      await calculateTransactionTotals(accountsData)
     } catch (err: any) {
       console.error('Error loading financial data:', err)
       setError(err.message || 'Failed to load financial data')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const calculateTransactionTotals = async (accountsData: FinancialAccount[]) => {
+    try {
+      // Get all OPEX account IDs
+      const opexAccountIds = accountsData
+        .filter(acc => acc.account_type === 'OPEX')
+        .map(acc => acc.id)
+      
+      // Get all CAPEX account IDs
+      const capexAccountIds = accountsData
+        .filter(acc => acc.account_type === 'CAPEX')
+        .map(acc => acc.id)
+
+      // Fetch all ACTIVE transactions
+      const allTransactionsResult = await db.from('financial_transactions')
+        .select('account_id, transaction_type, amount')
+        .eq('status', 'ACTIVE')
+
+      if (!allTransactionsResult.error && allTransactionsResult.data) {
+        // Filter OPEX transactions
+        const opexTransactions = allTransactionsResult.data.filter(t => 
+          opexAccountIds.includes(t.account_id)
+        )
+        
+        const opexRevTotal = opexTransactions
+          .filter(t => ['REVENUE', 'INFLOW'].includes(t.transaction_type))
+          .reduce((sum, t) => sum + (t.amount || 0), 0)
+        
+        const opexExpTotal = opexTransactions
+          .filter(t => ['EXPENSE', 'OUTFLOW'].includes(t.transaction_type))
+          .reduce((sum, t) => sum + (t.amount || 0), 0)
+        
+        setOpexRevenue(opexRevTotal)
+        setOpexExpense(opexExpTotal)
+
+        // Filter CAPEX transactions
+        const capexTransactions = allTransactionsResult.data.filter(t => 
+          capexAccountIds.includes(t.account_id)
+        )
+        
+        const capexRevTotal = capexTransactions
+          .filter(t => ['REVENUE', 'INFLOW'].includes(t.transaction_type))
+          .reduce((sum, t) => sum + (t.amount || 0), 0)
+        
+        const capexExpTotal = capexTransactions
+          .filter(t => ['EXPENSE', 'OUTFLOW'].includes(t.transaction_type))
+          .reduce((sum, t) => sum + (t.amount || 0), 0)
+        
+        setCapexRevenue(capexRevTotal)
+        setCapexExpense(capexExpTotal)
+      }
+    } catch (err) {
+      console.error('Error calculating transaction totals:', err)
     }
   }
 
@@ -203,18 +271,6 @@ export default function FinanceOverviewPage() {
         </div>
       )}
 
-      {/* Total Balance Card */}
-      <div className="bg-gradient-to-br from-art-indigo to-purple-700 rounded-lg p-6 md:p-8 mb-6 md:mb-8 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-purple-200 mb-2 text-sm md:text-base">Total Balance</p>
-            <h2 className="text-4xl md:text-5xl font-bold">₹{totalBalance.toFixed(2)}</h2>
-            <p className="text-purple-200 mt-3 md:mt-4 text-xs md:text-base">Across all accounts</p>
-          </div>
-          <Wallet className="w-16 md:w-20 h-16 md:h-20 text-purple-300 opacity-50" />
-        </div>
-      </div>
-
       {/* Account Type Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
         {/* OPEX Total */}
@@ -230,12 +286,12 @@ export default function FinanceOverviewPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4 pt-3 md:pt-4 border-t">
             <div>
-              <p className="text-xs text-gray-500">Bank</p>
-              <p className="text-base md:text-lg font-semibold text-gray-900">₹{totals.opexBank.toFixed(2)}</p>
+              <p className="text-xs text-gray-500">Revenue</p>
+              <p className="text-base md:text-lg font-semibold text-green-600">₹{opexRevenue.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Cash</p>
-              <p className="text-base md:text-lg font-semibold text-gray-900">₹{totals.opexCash.toFixed(2)}</p>
+              <p className="text-xs text-gray-500">Expense</p>
+              <p className="text-base md:text-lg font-semibold text-red-600">₹{opexExpense.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -253,12 +309,12 @@ export default function FinanceOverviewPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4 pt-3 md:pt-4 border-t">
             <div>
-              <p className="text-xs text-gray-500">Bank</p>
-              <p className="text-base md:text-lg font-semibold text-gray-900">₹{totals.capexBank.toFixed(2)}</p>
+              <p className="text-xs text-gray-500">Revenue</p>
+              <p className="text-base md:text-lg font-semibold text-green-600">₹{capexRevenue.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Cash</p>
-              <p className="text-base md:text-lg font-semibold text-gray-900">₹{totals.capexCash.toFixed(2)}</p>
+              <p className="text-xs text-gray-500">Expense</p>
+              <p className="text-base md:text-lg font-semibold text-red-600">₹{capexExpense.toFixed(2)}</p>
             </div>
           </div>
         </div>
