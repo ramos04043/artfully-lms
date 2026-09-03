@@ -586,10 +586,18 @@ export default function AttendancePage() {
                   return (
                     <tr key={record.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
+                        <div className="flex items-center gap-2">
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {student ? `${student.first_name} ${student.last_name}` : 'Unknown'}
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900">
+                                {student ? `${student.first_name} ${student.last_name}` : 'Unknown'}
+                              </span>
+                              {record.status === 'COMPENSATION_PRESENT' && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
+                                  <Calendar className="w-2.5 h-2.5" />
+                                  COMPENSATION
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-gray-500">
                               {student?.student_id || 'N/A'}
