@@ -259,12 +259,11 @@ export default function StaffAttendance() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => markAttendance(student.student_id, 'PRESENT')}
-                    disabled={(student.weekly_classes_count || 0) >= 2 && student.attendance_status !== 'PRESENT'}
                     className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all active:scale-95 ${
                       student.attendance_status === 'PRESENT'
                         ? 'bg-green-600 text-white'
                         : 'bg-white border-2 border-green-600 text-green-600 hover:bg-green-50'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    }`}
                   >
                     <CheckCircle className="w-5 h-5" />
                     Present
@@ -282,12 +281,6 @@ export default function StaffAttendance() {
                     Absent
                   </button>
                 </div>
-
-                {(student.weekly_classes_count || 0) >= 2 && student.attendance_status !== 'PRESENT' && (
-                  <p className="text-xs text-orange-600 mt-2 text-center">
-                    Weekly limit reached (2/2 classes)
-                  </p>
-                )}
               </div>
             ))}
           </div>
