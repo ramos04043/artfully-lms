@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { db } from '@/lib/db-api'
 import { format } from 'date-fns'
 import { 
-  Search, 
   Calendar, 
   Filter,
   CheckCircle,
@@ -32,6 +31,7 @@ interface StudentInfo {
   student_last_name: string
   student_phone: string
   student_email: string
+  programme_name?: string
 }
 
 interface BatchInfo {
@@ -52,7 +52,6 @@ interface AttendanceStats {
 
 export default function AttendanceReportsPage() {
   const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedStudent, setSelectedStudent] = useState<StudentInfo | null>(null)
   const [students, setStudents] = useState<StudentInfo[]>([])
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
@@ -64,7 +63,6 @@ export default function AttendanceReportsPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [showStudentDropdown, setShowStudentDropdown] = useState(false)
 
   useEffect(() => {
     loadStudents()
@@ -79,18 +77,65 @@ export default function AttendanceReportsPage() {
 
   const loadStudents = async () => {
     try {
-      const { data, error } = await db
+      // Load ACTIVE students
+      const { data: activeData, error: activeError } = await db
         .from('enrollments')
-        .select('student_id, student_first_name, student_last_name, student_phone, student_email')
+        .select('student_id, student_first_name, student_last_name, student_phone, student_email, batch_ids')
         .eq('status', 'ACTIVE')
-        .order('student_first_name', { ascending: true })
 
-      if (error) throw error
+      if (activeError) throw activeError
+
+      // Load PAUSED students
+      const { data: pausedData, error: pausedError } = await db
+        .from('enrollments')
+        .select('student_id, student_first_name, student_last_name, student_phone, student_email, batch_ids')
+        .eq('status', 'PAUSED')
+
+      if (pausedError) throw pausedError
+
+      // Combine students
+      const allStudents = [...(activeData || []), ...(pausedData || [])]
+
+      // Get all unique batch IDs
+      const batchIds = [...new Set(allStudents.flatMap(s => s.batch_ids || []))]
+
+      // Fetch batches with programme info
+      const { data: batchesData } = await db
+        .from('batches')
+        .select('id, programme_id')
+
+      // Get all programme IDs
+      const programmeIds = [...new Set((batchesData || []).map(b => b.programme_id).filter(Boolean))]
+
+      // Fetch programme names
+      const { data: programmesData } = await db
+        .from('programmes')
+        .select('id, name')
+
+      const programmesMap = new Map((programmesData || []).map(p => [p.id, p.name]))
+      const batchProgrammeMap = new Map((batchesData || []).map(b => [b.id, programmesMap.get(b.programme_id)]))
+
+      // Add programme name to students based on their first batch
+      const studentsWithProgrammes = allStudents.map(s => {
+        const firstBatchId = s.batch_ids?.[0]
+        const programmeName = firstBatchId ? batchProgrammeMap.get(firstBatchId) : ''
+        return {
+          student_id: s.student_id,
+          student_first_name: s.student_first_name,
+          student_last_name: s.student_last_name,
+          student_phone: s.student_phone,
+          student_email: s.student_email,
+          programme_name: programmeName || ''
+        }
+      })
 
       // Remove duplicates based on student_id
       const uniqueStudents = Array.from(
-        new Map((data || []).map(s => [s.student_id, s])).values()
+        new Map(studentsWithProgrammes.map(s => [s.student_id, s])).values()
       )
+
+      // Sort by student_id (ART1001, ART1002, etc.)
+      uniqueStudents.sort((a, b) => a.student_id.localeCompare(b.student_id))
 
       setStudents(uniqueStudents as StudentInfo[])
     } catch (err: any) {
@@ -247,12 +292,6 @@ export default function AttendanceReportsPage() {
     window.URL.revokeObjectURL(url)
   }
 
-  const filteredStudents = students.filter(s => {
-    const fullName = `${s.student_first_name} ${s.student_last_name}`.toLowerCase()
-    const query = searchQuery.toLowerCase()
-    return fullName.includes(query) || s.student_id.toLowerCase().includes(query)
-  })
-
   return (
     <div className="p-4 md:p-8">
       {/* Header */}
@@ -268,65 +307,77 @@ export default function AttendanceReportsPage() {
         </div>
       )}
 
-      {/* Student Search */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <User className="w-5 h-5 text-gray-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Select Student</h2>
-        </div>
-
-        <div className="relative">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setShowStudentDropdown(true)
-              }}
-              onFocus={() => setShowStudentDropdown(true)}
-              placeholder="Search student by name or ID..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
-            />
+      {!selectedStudent ? (
+        /* Student List View */
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <User className="w-5 h-5 text-gray-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Select a Student</h2>
+            <span className="ml-auto text-sm text-gray-500">{students.length} students</span>
           </div>
 
-          {/* Dropdown */}
-          {showStudentDropdown && filteredStudents.length > 0 && (
-            <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {filteredStudents.map((student) => (
-                <button
-                  key={student.student_id}
-                  onClick={() => {
-                    setSelectedStudent(student)
-                    setSearchQuery(`${student.student_first_name} ${student.student_last_name} (${student.student_id})`)
-                    setShowStudentDropdown(false)
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
-                >
-                  <div className="font-medium text-gray-900">
-                    {student.student_first_name} {student.student_last_name}
+          {/* Student List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {students.map((student) => (
+              <button
+                key={student.student_id}
+                onClick={() => setSelectedStudent(student)}
+                className="text-left p-4 bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-lg hover:border-art-indigo hover:shadow-md transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-gray-900">
+                        {student.student_first_name} {student.student_last_name}
+                      </p>
+                      {student.programme_name?.toLowerCase().includes('advanced') && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                          ADVANCED
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">{student.student_id}</p>
+                    <p className="text-xs text-gray-500">{student.student_phone}</p>
                   </div>
-                  <div className="text-sm text-gray-500">{student.student_id}</div>
-                </button>
-              ))}
+                  <User className="w-10 h-10 text-gray-300" />
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {students.length === 0 && (
+            <div className="text-center py-12">
+              <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-600">No students found</p>
             </div>
           )}
         </div>
-
-        {selectedStudent && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm font-medium text-blue-900">Selected Student:</p>
-            <p className="text-lg font-bold text-blue-900">
-              {selectedStudent.student_first_name} {selectedStudent.student_last_name}
-            </p>
-            <p className="text-sm text-blue-700">{selectedStudent.student_id}</p>
-          </div>
-        )}
-      </div>
-
-      {selectedStudent && (
+      ) : (
+        /* Selected Student View - Attendance Details */
         <>
+          {/* Back Button and Student Info */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 mb-6">
+            <button
+              onClick={() => {
+                setSelectedStudent(null)
+                setAttendanceRecords([])
+                setStats(null)
+              }}
+              className="flex items-center gap-2 text-art-indigo hover:text-art-indigo-dark mb-4"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Student List
+            </button>
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm font-medium text-blue-900">Viewing Attendance For:</p>
+              <p className="text-xl font-bold text-blue-900">
+                {selectedStudent.student_first_name} {selectedStudent.student_last_name}
+              </p>
+              <p className="text-sm text-blue-700">{selectedStudent.student_id}</p>
+            </div>
+          </div>
           {/* Statistics Cards */}
           {stats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
