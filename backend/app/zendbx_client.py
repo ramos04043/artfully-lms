@@ -117,6 +117,9 @@ class ZendBXClient:
                     params[column] = f"in.({value})"
                 else:
                     # Default to eq operator
+                    # Convert Python booleans to lowercase strings for PostgreSQL
+                    if isinstance(value, bool):
+                        value = str(value).lower()
                     params[key] = f"eq.{value}"
         
         if order_by:
@@ -242,6 +245,9 @@ class ZendBXClient:
                 params[column] = f"in.({value})"
             else:
                 # Default to eq operator
+                # Convert Python booleans to lowercase strings for PostgreSQL
+                if isinstance(value, bool):
+                    value = str(value).lower()
                 params[key] = f"eq.{value}"
         
         print(f"🔄 Updating {table} with filters: {filters} -> params: {params}")

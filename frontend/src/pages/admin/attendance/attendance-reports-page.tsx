@@ -77,41 +77,34 @@ export default function AttendanceReportsPage() {
 
   const loadStudents = async () => {
     try {
-      // Load ACTIVE students
-      const { data: activeData, error: activeError } = await db
-        .from('enrollments')
-        .select('student_id, student_first_name, student_last_name, student_phone, student_email, batch_ids')
-        .eq('status', 'ACTIVE')
+      // Fetch all data in parallel for speed
+      const [
+        { data: activeData, error: activeError },
+        { data: pausedData, error: pausedError },
+        { data: batchesData, error: batchesError },
+        { data: programmesData, error: programmesError }
+      ] = await Promise.all([
+        db.from('enrollments')
+          .select('student_id, student_first_name, student_last_name, student_phone, student_email, batch_ids')
+          .eq('status', 'ACTIVE'),
+        db.from('enrollments')
+          .select('student_id, student_first_name, student_last_name, student_phone, student_email, batch_ids')
+          .eq('status', 'PAUSED'),
+        db.from('batches')
+          .select('id, programme_id'),
+        db.from('programmes')
+          .select('id, name')
+      ])
 
       if (activeError) throw activeError
-
-      // Load PAUSED students
-      const { data: pausedData, error: pausedError } = await db
-        .from('enrollments')
-        .select('student_id, student_first_name, student_last_name, student_phone, student_email, batch_ids')
-        .eq('status', 'PAUSED')
-
       if (pausedError) throw pausedError
+      if (batchesError) throw batchesError
+      if (programmesError) throw programmesError
 
       // Combine students
       const allStudents = [...(activeData || []), ...(pausedData || [])]
 
-      // Get all unique batch IDs
-      const batchIds = [...new Set(allStudents.flatMap(s => s.batch_ids || []))]
-
-      // Fetch batches with programme info
-      const { data: batchesData } = await db
-        .from('batches')
-        .select('id, programme_id')
-
-      // Get all programme IDs
-      const programmeIds = [...new Set((batchesData || []).map(b => b.programme_id).filter(Boolean))]
-
-      // Fetch programme names
-      const { data: programmesData } = await db
-        .from('programmes')
-        .select('id, name')
-
+      // Create lookup maps
       const programmesMap = new Map((programmesData || []).map(p => [p.id, p.name]))
       const batchProgrammeMap = new Map((batchesData || []).map(b => [b.id, programmesMap.get(b.programme_id)]))
 
@@ -129,13 +122,10 @@ export default function AttendanceReportsPage() {
         }
       })
 
-      // Remove duplicates based on student_id
+      // Remove duplicates based on student_id and sort
       const uniqueStudents = Array.from(
         new Map(studentsWithProgrammes.map(s => [s.student_id, s])).values()
-      )
-
-      // Sort by student_id (ART1001, ART1002, etc.)
-      uniqueStudents.sort((a, b) => a.student_id.localeCompare(b.student_id))
+      ).sort((a, b) => a.student_id.localeCompare(b.student_id))
 
       setStudents(uniqueStudents as StudentInfo[])
     } catch (err: any) {
