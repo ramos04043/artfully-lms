@@ -90,7 +90,7 @@ export default function AdditionalClassesPage() {
       setAllBatches(batchesData || [])
 
       // Load additional class assignments
-      const response = await fetch(`${API_URL}/api/v1/additional-classes/assignments`, {
+      const response = await fetch(`${API_URL}/api/additional-classes/assignments`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -186,7 +186,7 @@ export default function AdditionalClassesPage() {
       setAssigning(true)
       setError('')
 
-      const response = await fetch(`${API_URL}/api/v1/additional-classes/assign`, {
+      const response = await fetch(`${API_URL}/api/additional-classes/assign`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,7 +230,7 @@ export default function AdditionalClassesPage() {
       setDeleting(true)
       setError('')
 
-      const response = await fetch(`${API_URL}/api/v1/additional-classes/assignments/${assignmentToDelete}`, {
+      const response = await fetch(`${API_URL}/api/additional-classes/assignments/${assignmentToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
