@@ -4,6 +4,8 @@ import { Plus, Users, X, Search, AlertCircle, CheckCircle, Trash2, ChevronRight 
 import ConfirmationDialog from '@/components/ui/confirmation-dialog'
 import { useAuthStore } from '@/stores/auth-store'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
 interface Student {
   student_id: string
   student_first_name: string
@@ -88,7 +90,7 @@ export default function AdditionalClassesPage() {
       setAllBatches(batchesData || [])
 
       // Load additional class assignments
-      const response = await fetch('/api/additional-classes/assignments', {
+      const response = await fetch(`${API_URL}/api/v1/additional-classes/assignments`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -184,7 +186,7 @@ export default function AdditionalClassesPage() {
       setAssigning(true)
       setError('')
 
-      const response = await fetch('/api/additional-classes/assign', {
+      const response = await fetch(`${API_URL}/api/v1/additional-classes/assign`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -228,7 +230,7 @@ export default function AdditionalClassesPage() {
       setDeleting(true)
       setError('')
 
-      const response = await fetch(`/api/additional-classes/assignments/${assignmentToDelete}`, {
+      const response = await fetch(`${API_URL}/api/v1/additional-classes/assignments/${assignmentToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
