@@ -272,7 +272,7 @@ async def remove_additional_class_assignment(
         # Soft delete - set is_active to false
         await db.update(
             'additional_classes',
-            data={'is_active': False, 'updated_at': datetime.utcnow().isoformat()},
+            data={'is_active': False},
             filters={'id': assignment_id}
         )
         
