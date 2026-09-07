@@ -21,6 +21,7 @@ import StudentsPage from '@/pages/admin/students/students-page'
 import StudentDetailPage from '@/pages/admin/students/student-detail-page'
 import EnrollmentPage from '@/pages/admin/students/enrollment-page'
 import BatchesPage from '@/pages/admin/batches/batches-page'
+import AdditionalClassesPage from '@/pages/admin/additional-classes/additional-classes-page'
 import AttendancePage from '@/pages/admin/attendance/attendance-page'
 import AttendanceReportsPage from '@/pages/admin/attendance/attendance-reports-page'
 import CompensationPage from '@/pages/admin/compensation/compensation-page'
@@ -99,9 +100,10 @@ function App() {
                 <Routes>
                   <Route path="/" element={<AdminDashboard />} />
                   <Route path="/students" element={<StudentsPage />} />
-                  <Route path="/students/:id" element={<StudentDetailPage />} />
                   <Route path="/students/enroll" element={<EnrollmentPage />} />
+                  <Route path="/students/:id" element={<StudentDetailPage />} />
                   <Route path="/batches" element={<BatchesPage />} />
+                  <Route path="/additional-classes" element={<AdditionalClassesPage />} />
                   <Route path="/attendance" element={<AttendancePage />} />
                   <Route path="/attendance/reports" element={<AttendanceReportsPage />} />
                   <Route path="/compensation" element={<CompensationPage />} />

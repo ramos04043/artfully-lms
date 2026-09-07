@@ -157,6 +157,27 @@ export default function AttendancePage() {
       
       setBatches(formattedBatches)
 
+      // Load additional class assignments to identify additional class students
+      try {
+        const response = await fetch('/api/additional-classes/assignments', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('zendbx_token')}`
+          }
+        })
+        
+        if (response.ok) {
+          const additionalData = await response.json()
+          // Store as a Set of "studentId-batchId" pairs for quick lookup
+          const additionalSet = new Set(
+            additionalData.map((a: any) => `${a.student_id}-${a.batch_id}`)
+          )
+          // Store in state for use in rendering
+          ;(window as any).__additionalClassLookup = additionalSet
+        }
+      } catch (err) {
+        console.warn('Could not load additional classes:', err)
+      }
+
       // Load initial attendance
       await loadAttendance()
     } catch (err: any) {
@@ -592,6 +613,16 @@ export default function AttendancePage() {
                               <span className="text-sm font-medium text-gray-900">
                                 {student ? `${student.first_name} ${student.last_name}` : 'Unknown'}
                               </span>
+                              {/* Additional Class Tag */}
+                              {(() => {
+                                const additionalLookup = (window as any).__additionalClassLookup
+                                const isAdditional = additionalLookup?.has(`${record.student_id}-${record.batch_id}`)
+                                return isAdditional ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                                    🏷️ Additional Class
+                                  </span>
+                                ) : null
+                              })()}
                               {record.status === 'COMPENSATION_PRESENT' && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
                                   <Calendar className="w-2.5 h-2.5" />

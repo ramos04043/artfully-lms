@@ -87,29 +87,19 @@ async def submit_attendance(
         for record in submission.attendance:
             try:
                 # Step 1: Validate student exists and is ACTIVE
-                students = await db.select(
-                    "students",
-                    filters={"id": record.student_id}
+                # Check enrollments table using student_id string (e.g., 'ART1048')
+                enrollments = await db.select(
+                    "enrollments",
+                    filters={"student_id": record.student_id}
                 )
                 
-                if not students:
-                    # Student might be in enrollments table
-                    enrollments = await db.select(
-                        "enrollments",
-                        filters={"id": record.student_id}
-                    )
-                    
-                    if not enrollments:
-                        errors.append(f"Student {record.student_id} not found")
-                        continue
-                    
-                    student = enrollments[0]
-                    student_name = f"{student['student_first_name']} {student['student_last_name']}"
-                    student_status = student['status']
-                else:
-                    student = students[0]
-                    student_name = f"{student['first_name']} {student['last_name']}"
-                    student_status = student['status']
+                if not enrollments:
+                    errors.append(f"Student {record.student_id} not found in enrollments")
+                    continue
+                
+                student = enrollments[0]
+                student_name = f"{student['student_first_name']} {student['student_last_name']}"
+                student_status = student['status']
                 
                 # Check if student is PAUSED
                 if student_status == 'PAUSED':

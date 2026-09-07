@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     attendance, payments, enrollment, expenses, staff, 
     automation, staff_auth_fix, database, migrations, batch_students, finance,
-    compensations
+    compensations, additional_classes
 )
 
 api_router = APIRouter()
@@ -22,6 +22,7 @@ api_router.include_router(migrations.router, prefix="/migrations", tags=["Databa
 api_router.include_router(batch_students.router, prefix="/batch-management", tags=["Batch Management"])
 api_router.include_router(finance.router, prefix="/finance", tags=["Finance"])
 api_router.include_router(compensations.router, prefix="/compensations", tags=["Compensations"])
+api_router.include_router(additional_classes.router, prefix="/additional-classes", tags=["Additional Classes"])
 
 # Future endpoints (to be implemented)
 # api_router.include_router(auth.router, prefix="/auth", tags=["auth"])

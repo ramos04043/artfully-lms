@@ -514,8 +514,7 @@ async def get_my_batches(user_id: str, day_of_week: Optional[str] = None):
         batches = await db.select(
             'batches',
             columns='id, name, day_of_week, start_time, end_time, max_capacity, programme_id',
-            filters=batch_filters,
-            order_by='start_time.asc'
+            filters=batch_filters
         )
         
         # Filter to only assigned batches
@@ -536,7 +535,7 @@ async def get_my_batches(user_id: str, day_of_week: Optional[str] = None):
             # Query all enrollments and count those with this batch in batch_ids array
             all_enrollments = await db.select(
                 'enrollments',
-                columns='id, batch_ids, status'
+                columns='id, student_id, batch_ids, status'
             )
             
             # Count active enrollments that include this batch
@@ -546,9 +545,9 @@ async def get_my_batches(user_id: str, day_of_week: Optional[str] = None):
                     if (enrollment.get('batch_ids') and 
                         batch['id'] in enrollment['batch_ids'] and
                         enrollment.get('status') == 'ACTIVE'):
-                        enrollments_with_batch.append(enrollment)
+                        enrollments_with_batch.append(enrollment['student_id'])
             
-            enrollments = enrollments_with_batch
+            total_students = len(enrollments_with_batch)
             
             # Get today's attendance
             from datetime import date
@@ -562,7 +561,6 @@ async def get_my_batches(user_id: str, day_of_week: Optional[str] = None):
             
             present_count = len([a for a in (attendance or []) if a['status'] == 'PRESENT'])
             absent_count = len([a for a in (attendance or []) if a['status'] == 'ABSENT'])
-            total_students = len(enrollments or [])
             not_marked = total_students - (present_count + absent_count)
             
             result.append({
@@ -734,6 +732,30 @@ async def submit_batch_attendance(
                     str(batch_id) in enrollment['batch_ids'] and
                     enrollment.get('status') == 'ACTIVE'):
                     enrolled_student_ids.append(enrollment['student_id'])
+        
+        # Also get additional class students for this batch
+        try:
+            additional_students = await db.select(
+                'additional_classes',
+                columns='student_id',
+                filters={'batch_id': str(batch_id), 'is_active': True}
+            )
+            
+            if additional_students:
+                for additional in additional_students:
+                    student_id = additional['student_id']
+                    if student_id not in enrolled_student_ids:
+                        # Verify student is active in enrollments
+                        student_enrollment = next(
+                            (e for e in all_enrollments if e['student_id'] == student_id and e['status'] == 'ACTIVE'),
+                            None
+                        )
+                        if student_enrollment:
+                            enrolled_student_ids.append(student_id)
+                            logger.info(f"✅ Added additional class student {student_id} to allowed list")
+        except Exception as e:
+            logger.error(f"Error checking additional classes: {e}")
+            # Continue without additional class students
         
         # Get week boundaries for validation
         class_date_obj = date.fromisoformat(class_date)
@@ -993,8 +1015,47 @@ async def get_batch_students(batch_id: UUID, user_id: str):
                         'first_name': enrollment['student_first_name'],
                         'last_name': enrollment['student_last_name'],
                         'status': enrollment['status'],
+                        'is_additional_class': False
                     })
                     logger.info(f"✅ Matched student: {enrollment.get('student_id')}")
+        
+        # Get additional class students
+        logger.info(f"Querying additional_classes table for batch {batch_id}")
+        additional_assignments = await db.select(
+            'additional_classes',
+            columns='student_id',
+            filters={'batch_id': str(batch_id), 'is_active': True}
+        )
+        
+        if additional_assignments and len(additional_assignments) > 0:
+            logger.info(f"Found {len(additional_assignments)} additional class assignments")
+            
+            # Get student details for additional class students
+            enrolled_student_ids = [s['student_id'] for s in enrolled_students]
+            
+            for assignment in additional_assignments:
+                student_id = assignment['student_id']
+                
+                # Skip if already in enrolled students (shouldn't happen, but safety check)
+                if student_id in enrolled_student_ids:
+                    continue
+                
+                # Find student in enrollments
+                student_enrollment = next(
+                    (e for e in all_enrollments if e['student_id'] == student_id and e['status'] == 'ACTIVE'),
+                    None
+                )
+                
+                if student_enrollment:
+                    enrolled_students.append({
+                        'id': student_enrollment['student_id'],
+                        'student_id': student_enrollment['student_id'],
+                        'first_name': student_enrollment['student_first_name'],
+                        'last_name': student_enrollment['student_last_name'],
+                        'status': student_enrollment['status'],
+                        'is_additional_class': True
+                    })
+                    logger.info(f"✅ Added additional class student: {student_id}")
         
         logger.info(f"Total enrolled students found: {len(enrolled_students)}")
         

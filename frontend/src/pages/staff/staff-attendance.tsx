@@ -12,6 +12,7 @@ interface Student {
   first_name: string
   last_name: string
   status: string
+  is_additional_class?: boolean
   attendance_status?: 'PRESENT' | 'ABSENT' | null
   attendance_id?: string
   weekly_classes_count?: number
@@ -244,9 +245,16 @@ export default function StaffAttendance() {
               >
                 {/* Student Info */}
                 <div className="mb-3">
-                  <h3 className="font-semibold text-gray-900">
-                    {student.first_name} {student.last_name}
-                  </h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-gray-900">
+                      {student.first_name} {student.last_name}
+                    </h3>
+                    {student.is_additional_class && (
+                      <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">
+                        🏷️ Additional Class
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-600">{student.student_id}</p>
                   {(student.weekly_classes_count || 0) > 0 && (
                     <p className="text-xs text-gray-500 mt-1">

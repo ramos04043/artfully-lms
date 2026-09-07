@@ -145,20 +145,42 @@ export default function BatchesPage() {
       // First, get all enrollments once
       const { data: allEnrollments } = await db
         .from('enrollments')
-        .select('id, batch_ids, status')
+        .select('id, student_id, batch_ids, status')
+      
+      // Get all additional class assignments
+      const response = await fetch('/api/additional-classes/assignments', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('zendbx_token')}`
+        }
+      })
+      
+      let additionalAssignments: any[] = []
+      if (response.ok) {
+        additionalAssignments = await response.json()
+      }
       
       const batchesWithCapacity = (batchData || []).map(batch => {
         // Count students who have this batch in their batch_ids array and are active
-        const activeCount = (allEnrollments || []).filter(enrollment => 
-          enrollment.batch_ids && 
-          enrollment.batch_ids.includes(batch.id) &&
-          enrollment.status === 'ACTIVE'
-        ).length
+        const regularStudentIds = (allEnrollments || [])
+          .filter(enrollment => 
+            enrollment.batch_ids && 
+            enrollment.batch_ids.includes(batch.id) &&
+            enrollment.status === 'ACTIVE'
+          )
+          .map(e => e.student_id)
+        
+        // Count additional class students for this batch
+        const additionalStudentIds = additionalAssignments
+          .filter(a => a.batch_id === batch.id)
+          .map(a => a.student_id)
+          .filter(id => !regularStudentIds.includes(id)) // Don't double count
+        
+        const totalCount = regularStudentIds.length + additionalStudentIds.length
 
         return {
           ...batch,
-          enrolled_count: activeCount,
-          remaining_capacity: batch.max_capacity - activeCount,
+          enrolled_count: totalCount,
+          remaining_capacity: batch.max_capacity - totalCount,
         }
       })
 
