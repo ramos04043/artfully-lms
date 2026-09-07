@@ -96,7 +96,14 @@ export default function AdditionalClassesPage() {
 
       let additionalAssignments: any[] = []
       if (response.ok) {
-        additionalAssignments = await response.json()
+        try {
+          additionalAssignments = await response.json()
+        } catch (e) {
+          console.warn('Could not parse additional classes response:', e)
+          additionalAssignments = []
+        }
+      } else {
+        console.warn('Additional classes API returned:', response.status)
       }
 
       // Create batch lookup

@@ -24,16 +24,16 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-07', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-14', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-07', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-14', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1003: % records', v_count;
@@ -49,28 +49,28 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-20', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-01', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-25', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-08', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-16', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-20', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-01', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-25', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-08', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-16', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1004: % records', v_count;
@@ -85,15 +85,15 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-23', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-06', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-23', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-06', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1005: % records', v_count;
@@ -109,15 +109,15 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-23', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-16', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-06', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-23', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-16', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-06', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1006: % records', v_count;
@@ -132,19 +132,19 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1007: % records', v_count;
@@ -159,18 +159,18 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1008: % records', v_count;
@@ -186,27 +186,27 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-01', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-25', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-08', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-09', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-16', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-23', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-01', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-25', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-08', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-09', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-16', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-23', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1009: % records', v_count;
@@ -222,24 +222,24 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-14', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-21', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-28', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-07', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-06', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-09', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-14', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-21', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-28', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-07', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-06', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-09', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1010: % records', v_count;
@@ -255,24 +255,24 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-14', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-21', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-28', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-31', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-07', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-20', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-14', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-21', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-28', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-31', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-07', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-20', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1011: % records', v_count;
@@ -288,19 +288,19 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-06', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-07', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-20', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-21', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-14', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-27', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-28', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-06', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-07', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-20', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-21', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-14', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-27', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-28', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1012: % records', v_count;
@@ -316,20 +316,20 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-23', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-25', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-01', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-06', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-20', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-08', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-31', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-23', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-25', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-01', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-06', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-20', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-08', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-31', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1013: % records', v_count;
@@ -344,19 +344,19 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1014: % records', v_count;
@@ -371,18 +371,18 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-25', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-01', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-08', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-09', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-23', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-16', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-25', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-01', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-08', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-09', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-23', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-16', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1015: % records', v_count;
@@ -397,18 +397,18 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-25', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-01', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-08', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-09', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-23', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-16', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-25', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-01', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-08', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-09', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-23', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-16', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1016: % records', v_count;
@@ -423,18 +423,18 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1018: % records', v_count;
@@ -449,18 +449,18 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1019: % records', v_count;
@@ -476,20 +476,20 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-08', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-06', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-20', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-27', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-09', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-14', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-23', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-08', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-06', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-20', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-27', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-09', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-14', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-23', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1020: % records', v_count;
@@ -504,16 +504,16 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-01', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-09', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-16', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-08', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-23', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-01', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-09', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-16', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-08', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-23', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1021: % records', v_count;
@@ -529,12 +529,12 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-16', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-23', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-16', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-23', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1022: % records', v_count;
@@ -550,12 +550,12 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-16', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-23', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-16', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-23', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1023: % records', v_count;
@@ -571,16 +571,16 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-14', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-21', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-28', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-16', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-20', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-14', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-21', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-28', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-16', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-20', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1024: % records', v_count;
@@ -594,8 +594,8 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1025: % records', v_count;
@@ -610,8 +610,8 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1026: % records', v_count;
@@ -626,10 +626,10 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-08', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-06', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-08', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-06', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1027: % records', v_count;
@@ -644,18 +644,18 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1028: % records', v_count;
@@ -671,19 +671,19 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-20', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-28', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-20', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-28', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1029: % records', v_count;
@@ -699,16 +699,16 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-20', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-07', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-14', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-20', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-07', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-14', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1030: % records', v_count;
@@ -722,9 +722,9 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1031: % records', v_count;
@@ -740,14 +740,14 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1032: % records', v_count;
@@ -763,21 +763,21 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-03', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-12', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-06', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-07', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-13', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-03', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-12', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-06', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-07', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-13', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1033: % records', v_count;
@@ -792,10 +792,10 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-07-25', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-07-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-01', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-02', 'ABSENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-07-25', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-07-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-01', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-02', 'ABSENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1035: % records', v_count;
@@ -810,10 +810,10 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-28', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-28', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1036: % records', v_count;
@@ -827,8 +827,8 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1037: % records', v_count;
@@ -842,8 +842,8 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1038: % records', v_count;
@@ -859,13 +859,13 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-16', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-23', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-30', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'ABSENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-16', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-23', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-30', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'ABSENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1039: % records', v_count;
@@ -879,12 +879,12 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-31', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-31', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1040: % records', v_count;
@@ -898,10 +898,10 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-08-01', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-15', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-22', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-08-29', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-08-01', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-15', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-22', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-08-29', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1041: % records', v_count;
@@ -915,7 +915,7 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1042: % records', v_count;
@@ -930,8 +930,8 @@ BEGIN
     SELECT batch_ids[1] INTO v_batch_id FROM enrollments WHERE student_id = v_student_id AND status = 'ACTIVE' LIMIT 1;
     IF v_batch_id IS NOT NULL THEN
         INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at) VALUES
-            (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW()),
-            (v_student_id, v_batch_id, '2024-09-03', 'PRESENT', NOW(), NOW());
+            (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW()),
+            (v_student_id, v_batch_id, '2026-09-03', 'PRESENT', NOW(), NOW());
         GET DIAGNOSTICS v_count = ROW_COUNT;
         v_total_count := v_total_count + v_count;
         RAISE NOTICE '✅ ART1043: % records', v_count;
@@ -967,4 +967,5 @@ FROM attendance
 WHERE student_id LIKE 'ART%'
 GROUP BY student_id
 ORDER BY student_id;
+
 

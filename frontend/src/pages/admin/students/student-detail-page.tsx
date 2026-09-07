@@ -78,6 +78,20 @@ export default function StudentDetailsPage() {
   // Editable fields
   const [editData, setEditData] = useState<Partial<Student>>({})
 
+  // Validate UUID format (UUIDs are 36 characters with dashes)
+  const isValidUUID = (str: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    return uuidRegex.test(str)
+  }
+
+  // Check if ID is valid, if not redirect to students page
+  useEffect(() => {
+    if (!id || !isValidUUID(id)) {
+      console.warn('Invalid student ID:', id)
+      navigate('/admin/students', { replace: true })
+    }
+  }, [id, navigate])
+
   useEffect(() => {
     if (id) {
       loadStudentDetails()

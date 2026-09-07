@@ -36,15 +36,15 @@ BEGIN
     INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at)
     VALUES
         -- July 2024 - Corrected dates
-        (v_student_id, v_batch_id, '2024-07-24', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-07-24', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
         
         -- August 2024
-        (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-14', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-21', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW());
+        (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-14', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-21', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW());
 
     GET DIAGNOSTICS v_count = ROW_COUNT;
     RAISE NOTICE 'Inserted % PRESENT records', v_count;
@@ -52,7 +52,7 @@ BEGIN
     -- Step 3: Insert ABSENT attendance record (1 class)
     INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at)
     VALUES
-        (v_student_id, v_batch_id, '2024-08-03', 'ABSENT', NOW(), NOW());
+        (v_student_id, v_batch_id, '2026-08-03', 'ABSENT', NOW(), NOW());
 
     GET DIAGNOSTICS v_count = ROW_COUNT;
     RAISE NOTICE 'Inserted % ABSENT record', v_count;
@@ -86,16 +86,16 @@ ORDER BY class_date;
 INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at)
 VALUES
     -- PRESENT records (7 classes)
-    ('ART1001', 'YOUR_BATCH_ID_HERE', '2024-07-24', 'PRESENT', NOW(), NOW()),
-    ('ART1001', 'YOUR_BATCH_ID_HERE', '2024-07-27', 'PRESENT', NOW(), NOW()),
-    ('ART1001', 'YOUR_BATCH_ID_HERE', '2024-08-10', 'PRESENT', NOW(), NOW()),
-    ('ART1001', 'YOUR_BATCH_ID_HERE', '2024-08-14', 'PRESENT', NOW(), NOW()),
-    ('ART1001', 'YOUR_BATCH_ID_HERE', '2024-08-17', 'PRESENT', NOW(), NOW()),
-    ('ART1001', 'YOUR_BATCH_ID_HERE', '2024-08-21', 'PRESENT', NOW(), NOW()),
-    ('ART1001', 'YOUR_BATCH_ID_HERE', '2024-08-24', 'PRESENT', NOW(), NOW()),
+    ('ART1001', 'YOUR_BATCH_ID_HERE', '2026-07-24', 'PRESENT', NOW(), NOW()),
+    ('ART1001', 'YOUR_BATCH_ID_HERE', '2026-07-27', 'PRESENT', NOW(), NOW()),
+    ('ART1001', 'YOUR_BATCH_ID_HERE', '2026-08-10', 'PRESENT', NOW(), NOW()),
+    ('ART1001', 'YOUR_BATCH_ID_HERE', '2026-08-14', 'PRESENT', NOW(), NOW()),
+    ('ART1001', 'YOUR_BATCH_ID_HERE', '2026-08-17', 'PRESENT', NOW(), NOW()),
+    ('ART1001', 'YOUR_BATCH_ID_HERE', '2026-08-21', 'PRESENT', NOW(), NOW()),
+    ('ART1001', 'YOUR_BATCH_ID_HERE', '2026-08-24', 'PRESENT', NOW(), NOW()),
     
     -- ABSENT record (1 class)
-    ('ART1001', 'YOUR_BATCH_ID_HERE', '2024-08-03', 'ABSENT', NOW(), NOW());
+    ('ART1001', 'YOUR_BATCH_ID_HERE', '2026-08-03', 'ABSENT', NOW(), NOW());
 */
 
 -- ============================================================================
@@ -107,3 +107,4 @@ VALUES
 --   Absent: Aug 3
 -- Attendance Rate: 87.5% (7 present out of 8 classes)
 -- ============================================================================
+

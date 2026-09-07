@@ -76,7 +76,7 @@ export default function StaffAttendance() {
     }
   }
 
-  const markAttendance = (studentId: string, status: 'PRESENT' | 'ABSENT') => {
+  const markAttendance = (studentId: string, status: 'PRESENT' | 'ABSENT' | null) => {
     setStudents((prev) =>
       prev.map((s) =>
         s.student_id === studentId
@@ -264,10 +264,10 @@ export default function StaffAttendance() {
                 </div>
 
                 {/* Attendance Buttons */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => markAttendance(student.student_id, 'PRESENT')}
-                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all active:scale-95 ${
+                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-lg font-medium transition-all active:scale-95 ${
                       student.attendance_status === 'PRESENT'
                         ? 'bg-green-600 text-white'
                         : 'bg-white border-2 border-green-600 text-green-600 hover:bg-green-50'
@@ -279,7 +279,7 @@ export default function StaffAttendance() {
 
                   <button
                     onClick={() => markAttendance(student.student_id, 'ABSENT')}
-                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all active:scale-95 ${
+                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-lg font-medium transition-all active:scale-95 ${
                       student.attendance_status === 'ABSENT'
                         ? 'bg-red-600 text-white'
                         : 'bg-white border-2 border-red-600 text-red-600 hover:bg-red-50'
@@ -287,6 +287,19 @@ export default function StaffAttendance() {
                   >
                     <XCircle className="w-5 h-5" />
                     Absent
+                  </button>
+
+                  <button
+                    onClick={() => markAttendance(student.student_id, null)}
+                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-lg font-medium transition-all active:scale-95 ${
+                      !student.attendance_status
+                        ? 'bg-gray-600 text-white'
+                        : 'bg-white border-2 border-gray-600 text-gray-600 hover:bg-gray-50'
+                    }`}
+                    title="Clear attendance marking"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    Clear
                   </button>
                 </div>
               </div>

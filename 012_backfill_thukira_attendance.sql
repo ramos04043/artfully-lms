@@ -35,22 +35,22 @@ BEGIN
     INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at)
     VALUES
         -- July 2024
-        (v_student_id, v_batch_id, '2024-07-20', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-07-22', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-07-27', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-07-29', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-07-20', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-07-22', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-07-27', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-07-29', 'PRESENT', NOW(), NOW()),
         
         -- August 2024
-        (v_student_id, v_batch_id, '2024-08-10', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-12', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-17', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-19', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-24', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-26', 'PRESENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-31', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-10', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-12', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-17', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-19', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-24', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-26', 'PRESENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-31', 'PRESENT', NOW(), NOW()),
         
         -- September 2024
-        (v_student_id, v_batch_id, '2024-09-02', 'PRESENT', NOW(), NOW());
+        (v_student_id, v_batch_id, '2026-09-02', 'PRESENT', NOW(), NOW());
 
     GET DIAGNOSTICS v_count = ROW_COUNT;
     RAISE NOTICE 'Inserted % PRESENT records', v_count;
@@ -58,8 +58,8 @@ BEGIN
     -- Insert ABSENT attendance records (2 classes)
     INSERT INTO attendance (student_id, batch_id, class_date, status, created_at, updated_at)
     VALUES
-        (v_student_id, v_batch_id, '2024-08-03', 'ABSENT', NOW(), NOW()),
-        (v_student_id, v_batch_id, '2024-08-05', 'ABSENT', NOW(), NOW());
+        (v_student_id, v_batch_id, '2026-08-03', 'ABSENT', NOW(), NOW()),
+        (v_student_id, v_batch_id, '2026-08-05', 'ABSENT', NOW(), NOW());
 
     GET DIAGNOSTICS v_count = ROW_COUNT;
     RAISE NOTICE 'Inserted % ABSENT records', v_count;
@@ -88,3 +88,4 @@ ORDER BY class_date;
 --   Absent: Aug 3, 5
 -- Attendance Rate: 85.7% (12 present out of 14 classes)
 -- ============================================================================
+
