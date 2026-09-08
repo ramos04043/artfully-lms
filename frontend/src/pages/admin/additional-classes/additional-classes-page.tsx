@@ -145,6 +145,15 @@ export default function AdditionalClassesPage() {
         }
       })
 
+      // Sort students numerically by student_id (e.g., ART1001, ART1002, etc.)
+      studentsWithAssignments.sort((a, b) => {
+        const extractNumber = (id: string) => {
+          const match = id.match(/\d+/)
+          return match ? parseInt(match[0]) : 0
+        }
+        return extractNumber(a.student_id) - extractNumber(b.student_id)
+      })
+
       setStudents(studentsWithAssignments)
     } catch (err: any) {
       console.error('Error loading data:', err)

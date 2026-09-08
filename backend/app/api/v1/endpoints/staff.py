@@ -483,102 +483,628 @@ async def get_my_batches(user_id: str, day_of_week: Optional[str] = None):
     - day_of_week: Optional filter by day (MONDAY, TUESDAY, etc.)
     """
     try:
+        logger.info(f"Fetching batches for staff user_id: {user_id}, day: {day_of_week}")
+        
         # Get staff record
         staff_result = await db.select(
             'staff',
             columns='id',
-            filters={'user_id': user_id, 'is_active': True},
+            filters={'user_id': user_id},
             limit=1
         )
         
         if not staff_result or len(staff_result) == 0:
+            logger.error(f"Staff record not found for user_id: {user_id}")
             raise HTTPException(status_code=404, detail="Staff record not found")
         
         staff_id = staff_result[0]['id']
+        logger.info(f"Found staff_id: {staff_id}")
         
         # Get batch assignments
         assignments = await db.select(
             'staff_batches',
             columns='batch_id',
-            filters={'staff_id': staff_id, 'is_active': True}
+            filters={'staff_id': staff_id}
         )
         
-        batch_ids = [a['batch_id'] for a in assignments] if assignments else []
+        if not assignments:
+            logger.info(f"No batch assignments found for staff {staff_id}")
+            return []
         
-        # Build batch filters
-        batch_filters = {'is_active': True}
-        if day_of_week:
-            batch_filters['day_of_week'] = day_of_week
+        batch_ids = [a['batch_id'] for a in assignments]
+        logger.info(f"Found {len(batch_ids)} assigned batches")
         
-        # Get batches
-        batches = await db.select(
+        # Get ALL active batches first (without filters to avoid ZendBX issues)
+        all_batches = await db.select(
             'batches',
-            columns='id, name, day_of_week, start_time, end_time, max_capacity, programme_id',
-            filters=batch_filters
+            columns='id, name, day_of_week, start_time, end_time, max_capacity, programme_id, is_active'
         )
         
-        # Filter to only assigned batches
-        assigned_batches = [b for b in (batches or []) if b['id'] in batch_ids]
+        if not all_batches:
+            logger.warning("No batches found in database")
+            return []
+        
+        # Filter to only assigned, active batches, and optionally by day
+        assigned_batches = []
+        for b in all_batches:
+            if (b['id'] in batch_ids and 
+                b.get('is_active', True) and 
+                (not day_of_week or b['day_of_week'] == day_of_week)):
+                assigned_batches.append(b)
+        
+        logger.info(f"After filtering: {len(assigned_batches)} batches")
         
         # For each batch, get programme name and student counts
         result = []
         for batch in assigned_batches:
-            # Get programme name
-            programme = await db.select(
-                'programmes',
-                columns='name',
-                filters={'id': batch['programme_id']},
+            try:
+                # Get programme name
+                programme = await db.select(
+                    'programmes',
+                    columns='name',
+                    filters={'id': batch['programme_id']},
+                    limit=1
+                )
+                
+                # Get enrollment count from enrollments table
+                all_enrollments = await db.select(
+                    'enrollments',
+                    columns='id, student_id, batch_ids, status'
+                )
+                
+                # Count active enrollments that include this batch
+                enrollments_with_batch = []
+                if all_enrollments:
+                    for enrollment in all_enrollments:
+                        if (enrollment.get('batch_ids') and 
+                            batch['id'] in enrollment['batch_ids'] and
+                            enrollment.get('status') == 'ACTIVE'):
+                            enrollments_with_batch.append(enrollment['student_id'])
+                
+                total_students = len(enrollments_with_batch)
+                
+                # Get today's attendance
+                from datetime import date
+                today_str = date.today().isoformat()
+                
+                attendance = await db.select(
+                    'attendance',
+                    columns='status',
+                    filters={'batch_id': batch['id'], 'class_date': today_str}
+                )
+                
+                present_count = len([a for a in (attendance or []) if a['status'] == 'PRESENT'])
+                absent_count = len([a for a in (attendance or []) if a['status'] == 'ABSENT'])
+                not_marked = total_students - (present_count + absent_count)
+                
+                result.append({
+                    'id': batch['id'],
+                    'label': batch['name'],
+                    'weekday': batch['day_of_week'],
+                    'start_time': batch['start_time'],
+                    'end_time': batch['end_time'],
+                    'capacity': batch['max_capacity'],
+                    'programme_name': programme[0]['name'] if programme else 'Unknown',
+                    'total_students': total_students,
+                    'marked_present': present_count,
+                    'marked_absent': absent_count,
+                    'not_marked': not_marked
+                })
+            except Exception as batch_error:
+                logger.error(f"Error processing batch {batch['id']}: {str(batch_error)}")
+                # Continue with other batches
+                continue
+        
+        logger.info(f"Returning {len(result)} batches")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching staff batches: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch batches: {str(e)}")
+
+
+@router.get("/additional-students")
+async def get_additional_students(user_id: str):
+    """
+    Get ALL students from batches assigned to this staff member
+    Returns a flat list with indicator for which are additional class students
+    
+    Query params:
+    - user_id: The app_users.id of the logged-in staff
+    """
+    try:
+        logger.info(f"=== /additional-students called with user_id: {user_id} ===")
+        
+        # Get staff record
+        staff_result = await db.select(
+            'staff',
+            columns='id',
+            filters={'user_id': user_id},
+            limit=1
+        )
+        
+        if not staff_result or len(staff_result) == 0:
+            logger.error(f"Staff record not found for user_id: {user_id}")
+            raise HTTPException(status_code=404, detail="Staff record not found")
+        
+        staff_id = staff_result[0]['id']
+        logger.info(f"Found staff_id: {staff_id}")
+        
+        # Get batch assignments for this staff
+        assignments = await db.select(
+            'staff_batches',
+            columns='batch_id',
+            filters={'staff_id': staff_id}
+        )
+        
+        if not assignments:
+            logger.info(f"No batch assignments found for staff {staff_id}")
+            return {"students": []}
+        
+        batch_ids = [a['batch_id'] for a in assignments]
+        logger.info(f"Staff assigned to {len(batch_ids)} batches")
+        
+        # Get batch info
+        all_batches = await db.select(
+            'batches',
+            columns='id, name'
+        )
+        batch_lookup = {b['id']: b['name'] for b in (all_batches or [])}
+        
+        # Get all additional class assignments (to mark which students are additional)
+        all_additional = await db.select(
+            'additional_classes',
+            columns='student_id, batch_id, is_active'
+        )
+        
+        # Create a set of student-batch pairs that are additional classes
+        additional_set = set()
+        if all_additional:
+            for a in all_additional:
+                if a['batch_id'] in batch_ids and a.get('is_active', True):
+                    additional_set.add(f"{a['student_id']}-{a['batch_id']}")
+        
+        logger.info(f"Found {len(additional_set)} additional class assignments in staff's batches")
+        
+        # Get all enrollments
+        all_enrollments = await db.select(
+            'enrollments',
+            columns='student_id, student_first_name, student_last_name, batch_ids, status'
+        )
+        
+        # Build student list - include ALL students in staff's batches
+        students = []
+        seen = set()  # To avoid duplicates (student-batch pairs)
+        
+        # First, add all regularly enrolled students
+        for enrollment in (all_enrollments or []):
+            if enrollment.get('status') != 'ACTIVE':
+                continue
+                
+            student_id = enrollment['student_id']
+            student_batch_ids = enrollment.get('batch_ids', [])
+            
+            # For each batch this student is enrolled in that the staff teaches
+            for batch_id in student_batch_ids:
+                if batch_id not in batch_ids:
+                    continue  # Skip batches this staff doesn't teach
+                
+                key = f"{student_id}-{batch_id}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                
+                # Check if this is an additional class
+                is_additional = key in additional_set
+                
+                students.append({
+                    'id': student_id,
+                    'student_id': student_id,
+                    'first_name': enrollment['student_first_name'],
+                    'last_name': enrollment['student_last_name'],
+                    'batch_name': batch_lookup.get(batch_id, 'Unknown Batch'),
+                    'batch_id': batch_id,
+                    'is_additional_class': is_additional
+                })
+        
+        # Second, add students who ONLY have additional classes (not in regular batches)
+        if all_additional:
+            for additional in all_additional:
+                if not additional.get('is_active', True):
+                    continue
+                
+                student_id = additional['student_id']
+                batch_id = additional['batch_id']
+                
+                # Only include if staff teaches this batch
+                if batch_id not in batch_ids:
+                    continue
+                
+                key = f"{student_id}-{batch_id}"
+                if key in seen:
+                    continue  # Already added as regular enrollment
+                seen.add(key)
+                
+                # Find student details from enrollments
+                student_enrollment = next(
+                    (e for e in all_enrollments if e['student_id'] == student_id and e['status'] == 'ACTIVE'),
+                    None
+                )
+                
+                if student_enrollment:
+                    students.append({
+                        'id': student_id,
+                        'student_id': student_id,
+                        'first_name': student_enrollment['student_first_name'],
+                        'last_name': student_enrollment['student_last_name'],
+                        'batch_name': batch_lookup.get(batch_id, 'Unknown Batch'),
+                        'batch_id': batch_id,
+                        'is_additional_class': True  # This is definitely an additional class
+                    })
+        
+        # Sort by student_id numerically (extract number from ART1001, ART1002, etc.)
+        def extract_number(student_id):
+            """Extract numeric part from student ID like ART1001 -> 1001"""
+            import re
+            match = re.search(r'\d+', student_id)
+            return int(match.group()) if match else 0
+        
+        students.sort(key=lambda s: extract_number(s['student_id']))
+        
+        additional_count = len([s for s in students if s['is_additional_class']])
+        logger.info(f"Returning {len(students)} total students ({additional_count} additional class batches)")
+        
+        return {"students": students}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching additional students: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+
+@router.post("/additional-students/attendance")
+async def submit_additional_students_attendance(attendance_data: dict):
+    """
+    Submit attendance for additional class students
+    
+    Request body:
+    {
+        "user_id": "staff-user-id",
+        "attendance": [
+            {"student_id": "...", "batch_id": "...", "batch_name": "...", "status": "PRESENT"},
+            {"student_id": "...", "batch_id": "...", "batch_name": "...", "status": "ABSENT"}
+        ]
+    }
+    """
+    try:
+        from datetime import date
+        
+        user_id = attendance_data.get('user_id')
+        attendance_records = attendance_data.get('attendance', [])
+        today_str = date.today().isoformat()
+        
+        logger.info(f"=== ATTENDANCE SUBMISSION START ===")
+        logger.info(f"User ID: {user_id}")
+        logger.info(f"Records to process: {len(attendance_records)}")
+        logger.info(f"Date: {today_str}")
+        
+        if not user_id or not attendance_records:
+            raise HTTPException(status_code=400, detail="Missing required fields")
+        
+        logger.info(f"Submitting attendance for {len(attendance_records)} batch(es)")
+        
+        # Verify staff
+        staff_result = await db.select(
+            'staff',
+            columns='id',
+            filters={'user_id': user_id},
+            limit=1
+        )
+        
+        if not staff_result or len(staff_result) == 0:
+            logger.error(f"Staff record not found for user_id: {user_id}")
+            raise HTTPException(status_code=403, detail="Staff record not found")
+        
+        staff_id = staff_result[0]['id']
+        logger.info(f"Staff ID: {staff_id}")
+        
+        # Get staff's assigned batches for validation
+        assignments = await db.select(
+            'staff_batches',
+            columns='batch_id',
+            filters={'staff_id': staff_id}
+        )
+        
+        assigned_batch_ids = [a['batch_id'] for a in (assignments or [])]
+        logger.info(f"Staff assigned to {len(assigned_batch_ids)} batches: {assigned_batch_ids}")
+        
+        saved_count = 0
+        errors = []
+        
+        for idx, record in enumerate(attendance_records):
+            logger.info(f"\n--- Processing record {idx + 1}/{len(attendance_records)} ---")
+            
+            student_id = record.get('student_id')
+            batch_id = record.get('batch_id')
+            status = record.get('status')
+            
+            logger.info(f"Student: {student_id}, Batch: {batch_id}, Status: {status}")
+            
+            if not batch_id:
+                error_msg = f"Missing batch_id for student {student_id}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+                continue
+            
+            # Verify staff is assigned to this batch
+            if batch_id not in assigned_batch_ids:
+                error_msg = f"Access denied for batch {batch_id}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+                continue
+            
+            logger.info(f"✓ Staff has access to batch {batch_id}")
+            
+            # Verify student exists and is ACTIVE
+            all_enrollments = await db.select(
+                'enrollments',
+                columns='student_id, batch_ids, status',
+                filters={'student_id': student_id}
+            )
+            
+            is_active_student = False
+            
+            if all_enrollments and len(all_enrollments) > 0:
+                enrollment = all_enrollments[0]
+                is_active_student = enrollment.get('status') == 'ACTIVE'
+                logger.info(f"Student status: {enrollment.get('status')}")
+            else:
+                logger.warning(f"No enrollment found for student {student_id}")
+            
+            # For additional classes page, we don't require enrollment in that specific batch
+            # Student just needs to be ACTIVE in the system
+            if not is_active_student:
+                error_msg = f"Student {student_id} is not active"
+                logger.error(error_msg)
+                errors.append(error_msg)
+                continue
+            
+            # Check if this is marked as an additional class (for notes tagging)
+            additional_check = await db.select(
+                'additional_classes',
+                columns='id, is_active',
+                filters={
+                    'student_id': student_id,
+                    'batch_id': batch_id
+                },
                 limit=1
             )
             
-            # Get enrollment count from enrollments table
-            # Query all enrollments and count those with this batch in batch_ids array
-            all_enrollments = await db.select(
-                'enrollments',
-                columns='id, student_id, batch_ids, status'
+            is_additional_class = (
+                additional_check and 
+                len(additional_check) > 0 and 
+                additional_check[0].get('is_active', True)
             )
             
-            # Count active enrollments that include this batch
-            enrollments_with_batch = []
-            if all_enrollments:
-                for enrollment in all_enrollments:
-                    if (enrollment.get('batch_ids') and 
-                        batch['id'] in enrollment['batch_ids'] and
-                        enrollment.get('status') == 'ACTIVE'):
-                        enrollments_with_batch.append(enrollment['student_id'])
+            # If not an additional class assignment, consider it an ad-hoc additional class
+            if not is_additional_class:
+                is_additional_class = True  # All attendance from this page is considered additional class
             
-            total_students = len(enrollments_with_batch)
+            logger.info(f"Is additional class: {is_additional_class}")
+            logger.info(f"✓ Student {student_id} can attend batch {batch_id} as additional class")
             
-            # Get today's attendance
-            from datetime import date
-            today_str = date.today().isoformat()
-            
-            attendance = await db.select(
+            # Delete existing attendance for today
+            existing = await db.select(
                 'attendance',
-                columns='status',
-                filters={'batch_id': batch['id'], 'class_date': today_str}
+                columns='id',
+                filters={
+                    'student_id': student_id,
+                    'batch_id': batch_id,
+                    'class_date': today_str
+                }
             )
             
-            present_count = len([a for a in (attendance or []) if a['status'] == 'PRESENT'])
-            absent_count = len([a for a in (attendance or []) if a['status'] == 'ABSENT'])
-            not_marked = total_students - (present_count + absent_count)
+            if existing and len(existing) > 0:
+                for att in existing:
+                    await db.delete('attendance', {'id': att['id']})
+                logger.info(f"✓ Deleted {len(existing)} existing attendance record(s)")
             
-            result.append({
-                'id': batch['id'],
-                'label': batch['name'],
-                'weekday': batch['day_of_week'],
-                'start_time': batch['start_time'],
-                'end_time': batch['end_time'],
-                'capacity': batch['max_capacity'],
-                'programme_name': programme[0]['name'] if programme else 'Unknown',
-                'total_students': total_students,
-                'marked_present': present_count,
-                'marked_absent': absent_count,
-                'not_marked': not_marked
-            })
+            # Get current IN_PROGRESS session
+            session_id = None
+            try:
+                student_sessions = await db.select(
+                    'student_sessions',
+                    columns='session_id',
+                    filters={'student_id': student_id, 'status': 'IN_PROGRESS'},
+                    limit=1
+                )
+                if student_sessions:
+                    session_id = student_sessions[0]['session_id']
+                    logger.info(f"✓ Found session: {session_id}")
+            except Exception as e:
+                logger.warning(f"Could not find session for student: {e}")
+            
+            # Insert new attendance record
+            attendance_record = {
+                'student_id': student_id,
+                'batch_id': batch_id,
+                'class_date': today_str,
+                'status': status,
+                'notes': 'Additional class attendance' if is_additional_class else None
+            }
+            
+            if session_id:
+                attendance_record['session_id'] = session_id
+            
+            logger.info(f"Attempting to insert attendance: {attendance_record}")
+            
+            try:
+                result = await db.insert('attendance', attendance_record)
+                
+                if result and len(result) > 0:
+                    saved_count += 1
+                    attendance_id = result[0]['id']
+                    logger.info(f"✅ SUCCESS! Saved attendance ID: {attendance_id}")
+                    
+                    # Handle post-attendance actions based on status
+                    if status == 'PRESENT':
+                        # Trigger session automation for qualifying attendance
+                        try:
+                            from app.services.session_service import session_service
+                            
+                            automation_result = await session_service.process_attendance_completion(
+                                student_id=student_id,
+                                attendance_id=attendance_id
+                            )
+                            
+                            if automation_result.get('processed'):
+                                completion = automation_result.get('completion_result', {})
+                                if completion.get('completed'):
+                                    logger.info(f"Session completed for {student_id}!")
+                        
+                        except Exception as auto_error:
+                            logger.error(f"Session automation failed: {auto_error}")
+                            # Don't fail attendance submission
+                    
+                    elif status == 'ABSENT':
+                        # Auto-create compensation request
+                        try:
+                            compensation_data = {
+                                "student_id": student_id,
+                                "original_attendance_id": attendance_id,
+                                "original_batch_id": batch_id,
+                                "original_date": today_str,
+                                "status": "PENDING_APPROVAL",
+                                "notes": f"Auto-created for absence on {today_str}"
+                            }
+                            
+                            compensation = await db.insert("compensations", compensation_data)
+                            
+                            if compensation:
+                                logger.info(f"Auto-created compensation request for {student_id}")
+                        
+                        except Exception as comp_error:
+                            logger.warning(f"Failed to create compensation: {comp_error}")
+                else:
+                    error_msg = f"Insert returned empty result for student {student_id}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                    
+            except Exception as insert_error:
+                error_msg = f"Failed to insert attendance for {student_id}: {str(insert_error)}"
+                logger.error(error_msg)
+                errors.append(error_msg)
         
-        return result
+        logger.info(f"\n=== ATTENDANCE SUBMISSION COMPLETE ===")
+        logger.info(f"Successfully saved: {saved_count}/{len(attendance_records)}")
+        logger.info(f"Errors: {len(errors)}")
         
+        if errors:
+            logger.warning(f"Errors encountered: {errors}")
+        
+        return {
+            "success": True,
+            "message": f"Attendance saved for {saved_count} batch(es)",
+            "saved": saved_count,
+            "errors": errors if errors else []
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error saving attendance: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to save attendance: {str(e)}")
+
+
+@router.get("/my-batches")
+async def get_my_batches_simple(user_id: str):
+    """
+    Get simple list of batches assigned to staff member
+    Used by staff additional students page
+    
+    Query params:
+    - user_id: The app_users.id of the logged-in staff
+    """
+    try:
+        logger.info(f"=== /my-batches called with user_id: {user_id} ===")
+        
+        # Get staff record
+        try:
+            staff_result = await db.select(
+                'staff',
+                columns='id',
+                filters={'user_id': user_id},
+                limit=1
+            )
+            logger.info(f"Staff query result: {staff_result}")
+        except Exception as staff_error:
+            logger.error(f"Error querying staff table: {str(staff_error)}")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(staff_error)}")
+        
+        if not staff_result or len(staff_result) == 0:
+            logger.error(f"Staff record not found for user_id: {user_id}")
+            raise HTTPException(status_code=404, detail="Staff record not found")
+        
+        staff_id = staff_result[0]['id']
+        logger.info(f"Found staff_id: {staff_id}")
+        
+        # Get batch assignments
+        try:
+            assignments = await db.select(
+                'staff_batches',
+                columns='batch_id',
+                filters={'staff_id': staff_id}
+            )
+            logger.info(f"Batch assignments query result: {assignments}")
+        except Exception as assign_error:
+            logger.error(f"Error querying staff_batches: {str(assign_error)}")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(assign_error)}")
+        
+        if not assignments:
+            logger.info(f"No batch assignments found for staff {staff_id}")
+            return {"batches": []}
+        
+        batch_ids = [a['batch_id'] for a in assignments]
+        logger.info(f"Found {len(batch_ids)} assigned batch IDs: {batch_ids}")
+        
+        # Get ALL batches (without order_by to avoid ZendBX issues)
+        try:
+            all_batches = await db.select(
+                'batches',
+                columns='id, name, day_of_week, start_time, end_time, is_active'
+            )
+            logger.info(f"Batches query returned {len(all_batches) if all_batches else 0} batches")
+        except Exception as batch_error:
+            logger.error(f"Error querying batches table: {str(batch_error)}")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(batch_error)}")
+        
+        if not all_batches:
+            logger.warning("No batches found in database")
+            return {"batches": []}
+        
+        # Filter to only assigned and active batches
+        assigned_batches = []
+        for b in all_batches:
+            if b['id'] in batch_ids and b.get('is_active', True):
+                assigned_batches.append({
+                    'id': b['id'],
+                    'name': b['name'],
+                    'day_of_week': b['day_of_week'],
+                    'start_time': b['start_time'],
+                    'end_time': b['end_time']
+                })
+        
+        logger.info(f"Returning {len(assigned_batches)} batches")
+        return {"batches": assigned_batches}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in /my-batches: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
     except HTTPException:
         raise
     except Exception as e:
@@ -681,7 +1207,7 @@ async def submit_batch_attendance(
         staff_result = await db.select(
             'staff',
             columns='id',
-            filters={'user_id': user_id, 'is_active': True},
+            filters={'user_id': user_id},
             limit=1
         )
         
@@ -693,12 +1219,12 @@ async def submit_batch_attendance(
         # Verify batch assignment
         assignment = await db.select(
             'staff_batches',
-            columns='id',
-            filters={'staff_id': staff_id, 'batch_id': str(batch_id), 'is_active': True},
+            columns='id, is_active',
+            filters={'staff_id': staff_id, 'batch_id': str(batch_id)},
             limit=1
         )
         
-        if not assignment or len(assignment) == 0:
+        if not assignment or len(assignment) == 0 or not assignment[0].get('is_active', True):
             logger.warning(f"Staff {user_id} attempted to mark attendance for unassigned batch {batch_id}")
             raise HTTPException(
                 status_code=403,
@@ -737,9 +1263,13 @@ async def submit_batch_attendance(
         try:
             additional_students = await db.select(
                 'additional_classes',
-                columns='student_id',
-                filters={'batch_id': str(batch_id), 'is_active': True}
+                columns='student_id, is_active',
+                filters={'batch_id': str(batch_id)}
             )
+            
+            # Filter to only active assignments
+            if additional_students:
+                additional_students = [a for a in additional_students if a.get('is_active', True)]
             
             if additional_students:
                 for additional in additional_students:
@@ -939,7 +1469,7 @@ async def get_batch_students(batch_id: UUID, user_id: str):
         staff_result = await db.select(
             'staff',
             columns='id',
-            filters={'user_id': user_id, 'is_active': True},
+            filters={'user_id': user_id},
             limit=1
         )
         
@@ -952,12 +1482,12 @@ async def get_batch_students(batch_id: UUID, user_id: str):
         # Check if staff is assigned to this batch
         assignment = await db.select(
             'staff_batches',
-            columns='id',
-            filters={'staff_id': staff_id, 'batch_id': str(batch_id), 'is_active': True},
+            columns='id, is_active',
+            filters={'staff_id': staff_id, 'batch_id': str(batch_id)},
             limit=1
         )
         
-        if not assignment or len(assignment) == 0:
+        if not assignment or len(assignment) == 0 or not assignment[0].get('is_active', True):
             logger.warning(f"Staff {user_id} attempted to access unassigned batch {batch_id}")
             raise HTTPException(
                 status_code=403, 
@@ -1023,9 +1553,13 @@ async def get_batch_students(batch_id: UUID, user_id: str):
         logger.info(f"Querying additional_classes table for batch {batch_id}")
         additional_assignments = await db.select(
             'additional_classes',
-            columns='student_id',
-            filters={'batch_id': str(batch_id), 'is_active': True}
+            columns='student_id, is_active',
+            filters={'batch_id': str(batch_id)}
         )
+        
+        # Filter to only active assignments in Python
+        if additional_assignments:
+            additional_assignments = [a for a in additional_assignments if a.get('is_active', True)]
         
         if additional_assignments and len(additional_assignments) > 0:
             logger.info(f"Found {len(additional_assignments)} additional class assignments")
