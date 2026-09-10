@@ -148,7 +148,8 @@ export default function BatchesPage() {
         .select('id, student_id, batch_ids, status')
       
       // Get all additional class assignments
-      const response = await fetch('/api/additional-classes/assignments', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${API_URL}/api/additional-classes/assignments`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('zendbx_token')}`
         }
@@ -156,7 +157,14 @@ export default function BatchesPage() {
       
       let additionalAssignments: any[] = []
       if (response.ok) {
-        additionalAssignments = await response.json()
+        try {
+          additionalAssignments = await response.json()
+        } catch (parseError) {
+          console.warn('Could not parse additional classes response, continuing without them')
+          additionalAssignments = []
+        }
+      } else {
+        console.warn('Failed to load additional class assignments, continuing without them')
       }
       
       const batchesWithCapacity = (batchData || []).map(batch => {
