@@ -951,23 +951,9 @@ async def submit_additional_students_attendance(attendance_data: dict):
                     
                     # Handle post-attendance actions based on status
                     if status == 'PRESENT':
-                        # Trigger session automation for qualifying attendance
-                        try:
-                            from app.services.session_service import session_service
-                            
-                            automation_result = await session_service.process_attendance_completion(
-                                student_id=student_id,
-                                attendance_id=attendance_id
-                            )
-                            
-                            if automation_result.get('processed'):
-                                completion = automation_result.get('completion_result', {})
-                                if completion.get('completed'):
-                                    logger.info(f"Session completed for {student_id}!")
-                        
-                        except Exception as auto_error:
-                            logger.error(f"Session automation failed: {auto_error}")
-                            # Don't fail attendance submission
+                        # For additional classes, we DON'T trigger session automation
+                        # Additional classes are extra practice and shouldn't count toward session progression
+                        logger.info(f"✓ Additional class attendance recorded (session automation skipped)")
                     
                     elif status == 'ABSENT':
                         # Auto-create compensation request
@@ -978,7 +964,7 @@ async def submit_additional_students_attendance(attendance_data: dict):
                                 "original_batch_id": batch_id,
                                 "original_date": today_str,
                                 "status": "PENDING_APPROVAL",
-                                "notes": f"Auto-created for absence on {today_str}"
+                                "notes": f"Auto-created for absence on {today_str} (Additional class)"
                             }
                             
                             compensation = await db.insert("compensations", compensation_data)

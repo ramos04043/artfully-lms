@@ -209,12 +209,14 @@ export default function StaffAdditionalStudents() {
 
       setSuccess(`Attendance saved for ${result.saved} batch(es)`)
       
-      // Close modal and reload
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000)
+      
+      // Close modal immediately
       handleCloseModal()
-      setTimeout(() => {
-        setSuccess('')
-        loadAdditionalStudents()
-      }, 2000)
+      
+      // Reload data immediately (don't wait)
+      loadAdditionalStudents()
 
     } catch (err: any) {
       console.error('Error saving attendance:', err)
