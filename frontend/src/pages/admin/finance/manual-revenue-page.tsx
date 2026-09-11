@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { 
   Plus, 
@@ -21,6 +22,7 @@ interface Category {
 }
 
 export default function ManualRevenuePage() {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -183,7 +185,15 @@ export default function ManualRevenuePage() {
       setDescription('')
       setShowAddForm(false)
 
-      setTimeout(() => setSuccess(''), 8000)
+      // Navigate back to Finance Overview after 2 seconds to show updated totals
+      setTimeout(() => {
+        navigate('/admin/finance', { 
+          state: { 
+            message: `Revenue of ₹${amountNum.toFixed(2)} recorded successfully!`,
+            refresh: true 
+          } 
+        })
+      }, 2000)
       
     } catch (err: any) {
       console.error('Error adding revenue:', err)

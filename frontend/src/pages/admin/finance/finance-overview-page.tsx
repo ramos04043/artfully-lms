@@ -11,9 +11,11 @@ import {
   ArrowDownCircle,
   Calendar,
   AlertCircle,
-  Trash2
+  Trash2,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import ConfirmationDialog from '@/components/ui/confirmation-dialog'
 
 interface FinancialAccount {
@@ -40,6 +42,7 @@ interface FinancialTransaction {
 
 export default function FinanceOverviewPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [accounts, setAccounts] = useState<FinancialAccount[]>([])
   const [recentTransactions, setRecentTransactions] = useState<FinancialTransaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -64,6 +67,15 @@ export default function FinanceOverviewPage() {
 
   useEffect(() => {
     loadData()
+    
+    // Check if we're coming from manual revenue page with a success message
+    if (location.state?.message) {
+      setSuccess(location.state.message)
+      setTimeout(() => setSuccess(''), 5000)
+      
+      // Clear the location state so message doesn't show on refresh
+      navigate(location.pathname, { replace: true, state: {} })
+    }
   }, [])
 
   const loadData = async () => {
@@ -274,7 +286,26 @@ export default function FinanceOverviewPage() {
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-red-800 text-sm">{error}</p>
+          <div className="flex-1">
+            <p className="text-red-800 text-sm">{error}</p>
+          </div>
+          <button onClick={() => setError('')} className="text-red-600 hover:text-red-800">
+            <XCircle className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Success Alert */}
+      {success && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-green-800 text-sm font-medium">{success}</p>
+            <p className="text-green-700 text-xs mt-1">OPEX totals have been updated</p>
+          </div>
+          <button onClick={() => setSuccess('')} className="text-green-600 hover:text-green-800">
+            <XCircle className="w-5 h-5" />
+          </button>
         </div>
       )}
 
@@ -613,13 +644,6 @@ export default function FinanceOverviewPage() {
           </div>
         </div>
       </div>
-
-      {/* Success Message */}
-      {success && (
-        <div className="fixed bottom-4 right-4 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg">
-          <p className="text-green-800 text-sm">{success}</p>
-        </div>
-      )}
 
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
