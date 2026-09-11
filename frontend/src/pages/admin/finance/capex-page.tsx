@@ -71,10 +71,12 @@ export default function CapEXPage() {
       }
 
       // Get all ACTIVE transactions for CAPEX accounts (all time)
+      // Set high limit to ensure we get ALL transactions
       const { data: allTransactions, error: txError } = await db
         .from('financial_transactions')
         .select('*')
         .eq('status', 'ACTIVE')
+        .limit(1000)  // Set high limit to ensure we get all transactions
         .order('transaction_date', { ascending: false })
 
       if (txError) {
