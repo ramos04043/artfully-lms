@@ -51,6 +51,7 @@ export default function FeesPage() {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([])
   const [enrollments, setEnrollments] = useState<EnrollmentInfo[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -100,7 +101,12 @@ export default function FeesPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true)
+      // Use refreshing state if already loaded, loading state if initial load
+      if (transactions.length > 0) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError('')
 
       // Load financial accounts
@@ -181,6 +187,7 @@ export default function FeesPage() {
       setError(err.message || 'Failed to load data')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 

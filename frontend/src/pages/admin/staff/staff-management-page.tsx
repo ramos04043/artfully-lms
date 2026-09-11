@@ -55,6 +55,7 @@ export default function StaffManagementPage() {
   const [staffBatches, setStaffBatches] = useState<StaffBatch[]>([])
   const [userToStaffMap, setUserToStaffMap] = useState<Record<string, string>>({}) // user_id -> staff_id
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -86,7 +87,12 @@ export default function StaffManagementPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true)
+      // Use refreshing state if already loaded, loading state if initial load
+      if (staff.length > 0) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError('')
 
       // Load all staff from app_users table
@@ -159,6 +165,7 @@ export default function StaffManagementPage() {
       setError(err?.message || err?.hint || err?.detail || 'Failed to load data')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 

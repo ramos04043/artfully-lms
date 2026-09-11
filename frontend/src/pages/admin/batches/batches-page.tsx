@@ -46,6 +46,7 @@ export default function BatchesPage() {
   const [batches, setBatches] = useState<Batch[]>([])
   const [programmes, setProgrammes] = useState<Programme[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -123,7 +124,12 @@ export default function BatchesPage() {
 
   const loadBatches = async () => {
     try {
-      setLoading(true)
+      // Use refreshing state if already loaded, loading state if initial load
+      if (batches.length > 0) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError('')
 
       // Load all batches
@@ -199,6 +205,7 @@ export default function BatchesPage() {
       setError(err.message || 'Failed to load batches')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -324,7 +331,9 @@ export default function BatchesPage() {
       )
       
       // Reload students and update batch counts
-      await handleBatchClick(selectedBatch!)
+      if (selectedBatch) {
+        await handleBatchClick(selectedBatch)
+      }
       await loadBatches()
       
       setTimeout(() => setSuccess(''), 5000)

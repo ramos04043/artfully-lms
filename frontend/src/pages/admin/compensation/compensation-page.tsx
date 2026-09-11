@@ -40,6 +40,7 @@ export default function CompensationPage() {
   const [enrollments, setEnrollments] = useState<EnrollmentInfo[]>([])
   const [batches, setBatches] = useState<BatchInfo[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -61,7 +62,12 @@ export default function CompensationPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true)
+      // Use refreshing state if already loaded, loading state if initial load
+      if (compensations.length > 0) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError('')
 
       // Load enrollments
@@ -88,6 +94,7 @@ export default function CompensationPage() {
       setError(err.message || 'Failed to load data')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 

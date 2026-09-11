@@ -43,6 +43,7 @@ const STAFF_MEMBERS = [
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -76,7 +77,12 @@ export default function TasksPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true)
+      // Use refreshing state if already loaded, loading state if initial load
+      if (tasks.length > 0) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError('')
 
       // Load tasks
@@ -92,6 +98,7 @@ export default function TasksPage() {
       setError(err.message || 'Failed to load data')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 

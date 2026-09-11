@@ -49,6 +49,7 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [accounts, setAccounts] = useState<FinancialAccount[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -133,7 +134,12 @@ export default function ExpensesPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true)
+      // Use refreshing state if already loaded, loading state if initial load
+      if (expenses.length > 0) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError('')
 
       // Load financial accounts
@@ -177,6 +183,7 @@ export default function ExpensesPage() {
       throw err  // Re-throw to let caller know there was an error
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 

@@ -40,6 +40,7 @@ export default function AdditionalClassesPage() {
   const [students, setStudents] = useState<StudentWithAssignments[]>([])
   const [allBatches, setAllBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -67,7 +68,12 @@ export default function AdditionalClassesPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true)
+      // Use refreshing state if already loaded, loading state if initial load
+      if (students.length > 0) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError('')
 
       // Load all active students from enrollments
@@ -110,14 +116,14 @@ export default function AdditionalClassesPage() {
 
       // Create batch lookup
       const batchLookup = new Map(
-        (batchesData || []).map(b => [b.id, b])
+        (batchesData || []).map((b: Batch) => [b.id, b])
       )
 
       // Process students with their regular and additional batches
       const studentsWithAssignments: StudentWithAssignments[] = (enrollmentsData || []).map(student => {
         const regularBatchIds = student.batch_ids || []
         const regularBatches = regularBatchIds
-          .map(id => batchLookup.get(id))
+          .map((id: string) => batchLookup.get(id))
           .filter(b => b !== undefined) as Batch[]
 
         // Find additional assignments for this student
@@ -160,6 +166,7 @@ export default function AdditionalClassesPage() {
       setError(err.message || 'Failed to load data')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -216,7 +223,9 @@ export default function AdditionalClassesPage() {
       const data = await response.json()
       setSuccess(data.message)
       handleCloseAssignModal()
-      loadData()
+      
+      // Refresh data and wait for it to complete
+      await loadData()
 
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
@@ -251,7 +260,10 @@ export default function AdditionalClassesPage() {
       }
 
       setSuccess('Additional class assignment removed')
-      loadData()
+      
+      // Refresh data and wait for it to complete
+      await loadData()
+      
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
       console.error('Error removing assignment:', err)
@@ -378,6 +390,11 @@ export default function AdditionalClassesPage() {
         {loading ? (
           <div className="p-12 text-center text-gray-500">
             Loading students...
+          </div>
+        ) : refreshing ? (
+          <div className="p-12 text-center text-gray-500">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mb-2"></div>
+            <p>Refreshing data...</p>
           </div>
         ) : filteredStudents.length === 0 ? (
           <div className="p-12 text-center">

@@ -43,6 +43,7 @@ export default function FinanceOverviewPage() {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([])
   const [recentTransactions, setRecentTransactions] = useState<FinancialTransaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   
@@ -67,7 +68,12 @@ export default function FinanceOverviewPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true)
+      // Use refreshing state if already loaded, loading state if initial load
+      if (accounts.length > 0) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError('')
 
       // Get ZendBX token from localStorage
@@ -116,6 +122,7 @@ export default function FinanceOverviewPage() {
       setError(err.message || 'Failed to load financial data')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
