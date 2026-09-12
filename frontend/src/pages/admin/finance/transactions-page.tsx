@@ -75,7 +75,15 @@ export default function TransactionsPage() {
   }
 
   const filteredTransactions = transactions.filter(t => {
-    const matchesFilter = filter === 'all' || t.transaction_type === filter
+    // Handle filter matching - need to check both old and new transaction types
+    let matchesFilter = true
+    if (filter === 'REVENUE') {
+      matchesFilter = ['REVENUE', 'INFLOW'].includes(t.transaction_type)
+    } else if (filter === 'EXPENSE') {
+      matchesFilter = ['EXPENSE', 'OUTFLOW'].includes(t.transaction_type)
+    }
+    // If filter is 'all', matchesFilter stays true
+    
     const matchesSearch = 
       t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -200,8 +208,8 @@ export default function TransactionsPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-art-indigo focus:border-transparent"
             >
               <option value="all">All Transactions</option>
-              <option value="INFLOW">Inflow Only</option>
-              <option value="OUTFLOW">Outflow Only</option>
+              <option value="REVENUE">Revenue </option>
+              <option value="EXPENSE">Expense </option>
             </select>
           </div>
 
