@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Totals Debugger</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4F46E5;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #4F46E5;
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #4F46E5;
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .revenue {
+            color: #16a34a;
+            font-weight: 600;
+        }
+        .expense {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        .total-box {
+            display: inline-block;
+            padding: 15px 25px;
+            margin: 10px;
+            border-radius: 8px;
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+        }
+        .total-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .total-amount {
+            font-size: 28px;
+            font-weight: bold;
+            color: #0ea5e9;
+        }
+        button {
+            background: #4F46E5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #4338CA;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #dc2626;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #dcfce7;
+            border: 1px solid #16a34a;
+            color: #166534;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .account-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-opex {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .badge-capex {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-bank {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+        .badge-cash {
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Finance Totals Debugger</h1>
+        <p>This tool helps debug why OPEX/CAPEX totals might be showing incorrect amounts.</p>
+        
+        <button onclick="loadData()">🔄 Load Finance Data</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000'; // Change this if your backend is on a different URL
+
+        async function loadData() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="loading">⏳ Loading data...</div>';
+
+            try {
+                // Step 1: Get all accounts
+                const accountsResponse = await fetch(`${API_URL}/api/db/financial_accounts?select=*&filters=${encodeURIComponent(JSON.stringify({is_active: 'true'}))}`);
+                if (!accountsResponse.ok) throw new Error('Failed to fetch accounts');
+                const accounts = await accountsResponse.json();
+
+                console.log('📋 Accounts:', accounts);
+
+                // Step 2: Get all ACTIVE transactions
+                const transactionsResponse = await fetch(`${API_URL}/api/db/financial_transactions?select=*&filters=${encodeURIComponent(JSON.stringify({status: 'ACTIVE'}))}&order=created_at.desc`);
+                if (!transactionsResponse.ok) throw new Error('Failed to fetch transactions');
+                const transactions = await transactionsResponse.json();
+
+                console.log('💳 Transactions:', transactions);
+
+                // Step 3: Calculate totals
+                const opexAccounts = accounts.filter(a => a.account_type === 'OPEX');
+                const capexAccounts = accounts.filter(a => a.account_type === 'CAPEX');
+                
+                const opexAccountIds = opexAccounts.map(a => a.id);
+                const capexAccountIds = capexAccounts.map(a => a.id);
+
+                const opexTransactions = transactions.filter(t => opexAccountIds.includes(t.account_id));
+                const capexTransactions = transactions.filter(t => capexAccountIds.includes(t.account_id));
+
+                const opexRevenue = opexTransactions
+                    .filter(t => ['REVENUE', 'INFLOW'].includes(t.transaction_type))
+                    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+                const opexExpense = opexTransactions
+                    .filter(t => ['EXPENSE', 'OUTFLOW'].includes(t.transaction_type))
+                    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+                const capexRevenue = capexTransactions
+                    .filter(t => ['REVENUE', 'INFLOW'].includes(t.transaction_type))
+                    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+                const capexExpense = capexTransactions
+                    .filter(t => ['EXPENSE', 'OUTFLOW'].includes(t.transaction_type))
+                    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+                // Step 4: Display results
+                let html = '<div class="success">✅ Data loaded successfully!</div>';
+
+                // Summary boxes
+                html += '<h2>📊 Calculated Totals</h2>';
+                html += '<div>';
+                html += `<div class="total-box"><div class="total-label">OPEX Revenue</div><div class="total-amount revenue">₹${opexRevenue.toFixed(2)}</div></div>`;
+                html += `<div class="total-box"><div class="total-label">OPEX Expense</div><div class="total-amount expense">₹${opexExpense.toFixed(2)}</div></div>`;
+                html += `<div class="total-box"><div class="total-label">OPEX Net</div><div class="total-amount">₹${(opexRevenue - opexExpense).toFixed(2)}</div></div>`;
+                html += '</div>';
+                
+                html += '<div>';
+                html += `<div class="total-box"><div class="total-label">CAPEX Revenue</div><div class="total-amount revenue">₹${capexRevenue.toFixed(2)}</div></div>`;
+                html += `<div class="total-box"><div class="total-label">CAPEX Expense</div><div class="total-amount expense">₹${capexExpense.toFixed(2)}</div></div>`;
+                html += `<div class="total-box"><div class="total-label">CAPEX Net</div><div class="total-amount">₹${(capexRevenue - capexExpense).toFixed(2)}</div></div>`;
+                html += '</div>';
+
+                // Accounts table
+                html += '<h2>🏦 Financial Accounts</h2>';
+                html += '<table><thead><tr><th>Account Name</th><th>Type</th><th>Mode</th><th>Opening Balance</th><th>Transaction Count</th></tr></thead><tbody>';
+                accounts.forEach(acc => {
+                    const accTransactions = transactions.filter(t => t.account_id === acc.id);
+                    html += `<tr>
+                        <td>${acc.account_name}</td>
+                        <td><span class="account-badge badge-${acc.account_type.toLowerCase()}">${acc.account_type}</span></td>
+                        <td><span class="account-badge badge-${acc.account_mode.toLowerCase()}">${acc.account_mode}</span></td>
+                        <td>₹${parseFloat(acc.opening_balance).toFixed(2)}</td>
+                        <td>${accTransactions.length}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+
+                // OPEX Transactions
+                html += '<h2>💰 OPEX Transactions (ACTIVE only)</h2>';
+                if (opexTransactions.length === 0) {
+                    html += '<p>No OPEX transactions found.</p>';
+                } else {
+                    html += `<p>Found ${opexTransactions.length} OPEX transactions</p>`;
+                    html += '<table><thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Amount</th><th>Description</th></tr></thead><tbody>';
+                    opexTransactions.slice(0, 20).forEach(t => {
+                        const account = accounts.find(a => a.id === t.account_id);
+                        const isRevenue = ['REVENUE', 'INFLOW'].includes(t.transaction_type);
+                        html += `<tr>
+                            <td>${new Date(t.transaction_date).toLocaleDateString()}</td>
+                            <td>${account ? account.account_name : 'Unknown'}</td>
+                            <td><span class="${isRevenue ? 'revenue' : 'expense'}">${t.transaction_type}</span></td>
+                            <td class="${isRevenue ? 'revenue' : 'expense'}">₹${parseFloat(t.amount).toFixed(2)}</td>
+                            <td>${t.description || '-'}</td>
+                        </tr>`;
+                    });
+                    if (opexTransactions.length > 20) {
+                        html += `<tr><td colspan="5" style="text-align:center;color:#666;">Showing first 20 of ${opexTransactions.length} transactions</td></tr>`;
+                    }
+                    html += '</tbody></table>';
+                }
+
+                // CAPEX Transactions
+                html += '<h2>🏗️ CAPEX Transactions (ACTIVE only)</h2>';
+                if (capexTransactions.length === 0) {
+                    html += '<p>No CAPEX transactions found.</p>';
+                } else {
+                    html += `<p>Found ${capexTransactions.length} CAPEX transactions</p>`;
+                    html += '<table><thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Amount</th><th>Description</th></tr></thead><tbody>';
+                    capexTransactions.slice(0, 20).forEach(t => {
+                        const account = accounts.find(a => a.id === t.account_id);
+                        const isRevenue = ['REVENUE', 'INFLOW'].includes(t.transaction_type);
+                        html += `<tr>
+                            <td>${new Date(t.transaction_date).toLocaleDateString()}</td>
+                            <td>${account ? account.account_name : 'Unknown'}</td>
+                            <td><span class="${isRevenue ? 'revenue' : 'expense'}">${t.transaction_type}</span></td>
+                            <td class="${isRevenue ? 'revenue' : 'expense'}">₹${parseFloat(t.amount).toFixed(2)}</td>
+                            <td>${t.description || '-'}</td>
+                        </tr>`;
+                    });
+                    if (capexTransactions.length > 20) {
+                        html += `<tr><td colspan="5" style="text-align:center;color:#666;">Showing first 20 of ${capexTransactions.length} transactions</td></tr>`;
+                    }
+                    html += '</tbody></table>';
+                }
+
+                resultsDiv.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -23,6 +23,7 @@ import EnrollmentPage from '@/pages/admin/students/enrollment-page'
 import BatchesPage from '@/pages/admin/batches/batches-page'
 import AdditionalClassesPage from '@/pages/admin/additional-classes/additional-classes-page'
 import AttendancePage from '@/pages/admin/attendance/attendance-page'
+import AdminMarkAttendancePage from '@/pages/admin/attendance/admin-attendance-page'
 import AttendanceReportsPage from '@/pages/admin/attendance/attendance-reports-page'
 import CompensationPage from '@/pages/admin/compensation/compensation-page'
 import FeesPage from '@/pages/admin/fees/fees-page'
@@ -106,6 +107,7 @@ function App() {
                   <Route path="/batches" element={<BatchesPage />} />
                   <Route path="/additional-classes" element={<AdditionalClassesPage />} />
                   <Route path="/attendance" element={<AttendancePage />} />
+                  <Route path="/attendance/mark" element={<AdminMarkAttendancePage />} />
                   <Route path="/attendance/reports" element={<AttendanceReportsPage />} />
                   <Route path="/compensation" element={<CompensationPage />} />
                   <Route path="/fees" element={<FeesPage />} />

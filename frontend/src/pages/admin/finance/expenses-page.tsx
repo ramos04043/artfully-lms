@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { db } from '@/lib/db-api'
 import { format } from 'date-fns'
 import { 
@@ -46,6 +47,7 @@ interface FinancialAccount {
 }
 
 export default function ExpensesPage() {
+  const navigate = useNavigate()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [accounts, setAccounts] = useState<FinancialAccount[]>([])
   const [loading, setLoading] = useState(true)
@@ -251,18 +253,16 @@ export default function ExpensesPage() {
 
       setSuccess('Expense created successfully!')
 
-      // Small delay to ensure database has updated, then reload
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Navigate to Finance Overview after 2 seconds to show updated totals
+      setTimeout(() => {
+        navigate('/admin/finance', { 
+          state: { 
+            message: `Expense of ₹${amountNum.toFixed(2)} recorded successfully!`,
+            refresh: true 
+          } 
+        })
+      }, 2000)
       
-      try {
-        await loadData()
-        console.log('Data reloaded successfully after expense creation')
-      } catch (reloadErr) {
-        console.error('Error reloading after create:', reloadErr)
-        setError('Expense created but failed to refresh. Please refresh the page.')
-      }
-
-      setTimeout(() => setSuccess(''), 5000)
     } catch (err: any) {
       console.error('Error adding expense:', err)
       setError(err.message || 'Failed to add expense')

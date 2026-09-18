@@ -1,15 +1,14 @@
 """
-Attendance Endpoints
-Handles attendance submission with business rule enforcement
+Admin Attendance Endpoints
+Allows admins to manually mark attendance for students
 """
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException, Depends, Query
+from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date, datetime, timedelta
-from collections import defaultdict
-
-from app.auth.deps import require_staff
+from uuid import UUID
+from datetime import date
 from app.zendbx_client import db
+from app.auth.deps import require_admin
 import logging
 
 router = APIRouter()
@@ -17,341 +16,298 @@ logger = logging.getLogger(__name__)
 
 
 class AttendanceRecord(BaseModel):
-    """Single attendance record"""
     student_id: str
-    status: str = Field(..., pattern="^(PRESENT|ABSENT)$")
+    status: str  # 'PRESENT' or 'ABSENT'
 
 
-class AttendanceSubmit(BaseModel):
-    """Attendance submission request"""
-    batch_id: str
+class AdminAttendanceRequest(BaseModel):
     class_date: date
     attendance: List[AttendanceRecord]
-    notes: Optional[str] = None
+    marked_by: str = 'admin'
 
 
-class AttendanceResponse(BaseModel):
-    """Attendance submission response"""
-    success: bool
-    marked_count: int
-    present_count: int
-    absent_count: int
-    emails_sent: int
-    errors: List[str] = []
-    message: str
-
-
-def get_week_start(d: date) -> date:
-    """Get Monday of the week containing the given date"""
-    return d - timedelta(days=d.weekday())
-
-
-@router.post("/submit", response_model=AttendanceResponse)
-async def submit_attendance(
-    submission: AttendanceSubmit,
-    current_user: dict = Depends(require_staff)
+@router.post("/admin/batches/{batch_id}/attendance")
+async def submit_admin_attendance(
+    batch_id: UUID,
+    attendance_data: AdminAttendanceRequest,
+    current_user: dict = Depends(require_admin)
 ):
     """
-    Submit attendance for a batch
+    Submit bulk attendance for a batch (Admin only)
     
-    This endpoint enforces critical business rules:
-    1. **Maximum 2 regular classes per week** - 3rd class in same week is blocked
-    2. **Classes on different days** - No 2nd class on same calendar day
-    3. **Paused students excluded** - Only ACTIVE students can be marked
-    4. **Absence notifications** - Automatic email to parents
-    
-    **Security:** Requires STAFF role (or ADMIN)
-    
-    **Business Rules:**
-    - Students can attend max 2 REGULAR classes per week (Mon-Sun)
-    - Cannot attend 2 classes on the same calendar day
-    - Paused students are automatically excluded
-    - Absence triggers email notification
+    Admins can mark attendance for any batch without validation restrictions.
+    This endpoint allows manual attendance entry for past dates or corrections.
     """
     try:
-        logger.info(f"Staff {current_user['id']} submitting attendance for batch {submission.batch_id} on {submission.class_date}")
+        class_date = attendance_data.class_date
+        attendance_records = attendance_data.attendance
         
-        errors = []
+        if not attendance_records:
+            raise HTTPException(status_code=400, detail="No attendance records provided")
+        
+        # Get batch info
+        batch = await db.select(
+            'batches',
+            columns='id, name',
+            filters={'id': str(batch_id)},
+            limit=1
+        )
+        
+        if not batch or len(batch) == 0:
+            raise HTTPException(status_code=404, detail="Batch not found")
+        
+        batch_data = batch[0]
+        logger.info(f"Admin marking attendance for batch {batch_data['name']} on {class_date}")
+        
         marked_count = 0
         present_count = 0
         absent_count = 0
-        emails_sent = 0
+        errors = []
         
-        # Get week boundaries
-        week_start = get_week_start(submission.class_date)
-        week_end = week_start + timedelta(days=6)
-        
-        logger.info(f"Week range: {week_start} to {week_end}")
-        
-        # Process each student
-        for record in submission.attendance:
+        # Process each attendance record
+        for record in attendance_records:
+            student_id = record.student_id
+            status = record.status
+            
+            # Validate status
+            if status not in ['PRESENT', 'ABSENT']:
+                errors.append(f"Invalid status '{status}' for student {student_id}")
+                continue
+            
             try:
-                # Step 1: Validate student exists and is ACTIVE
-                # Check enrollments table using student_id string (e.g., 'ART1048')
-                enrollments = await db.select(
-                    "enrollments",
-                    filters={"student_id": record.student_id}
-                )
-                
-                if not enrollments:
-                    errors.append(f"Student {record.student_id} not found in enrollments")
-                    continue
-                
-                student = enrollments[0]
-                student_name = f"{student['student_first_name']} {student['student_last_name']}"
-                student_status = student['status']
-                
-                # Check if student is PAUSED
-                if student_status == 'PAUSED':
-                    errors.append(f"{student_name} is PAUSED and cannot attend")
-                    continue
-                
-                # Step 2: For PRESENT status, enforce business rules
-                if record.status == 'PRESENT':
-                    # Rule 1: Check same-day attendance
-                    same_day_attendance = await db.select(
-                        "attendance",
-                        filters={
-                            "student_id": record.student_id,
-                            "class_date": submission.class_date.isoformat(),
-                            "status": "PRESENT"
-                        }
-                    )
-                    
-                    if same_day_attendance:
-                        errors.append(f"{student_name} already attended a class today")
-                        continue
-                    
-                    # Rule 2: Check weekly limit (2 classes max)
-                    weekly_attendance = await db.select(
-                        "attendance",
-                        columns="id,class_date,status",
-                        filters={
-                            "student_id": record.student_id,
-                            "status": "PRESENT"
-                        }
-                    )
-                    
-                    # Filter by week range
-                    this_week_count = sum(
-                        1 for att in weekly_attendance
-                        if week_start <= date.fromisoformat(att['class_date']) <= week_end
-                    )
-                    
-                    if this_week_count >= 2:
-                        errors.append(f"{student_name} has already attended 2 classes this week (limit reached)")
-                        continue
-                
-                # Step 3: Check if attendance already exists for this student/batch/date
+                # Check for existing attendance
                 existing = await db.select(
-                    "attendance",
+                    'attendance',
+                    columns='id, status',
                     filters={
-                        "student_id": record.student_id,
-                        "batch_id": submission.batch_id,
-                        "class_date": submission.class_date.isoformat()
-                    }
+                        'student_id': student_id,
+                        'batch_id': str(batch_id),
+                        'class_date': class_date.isoformat()
+                    },
+                    limit=1
                 )
                 
-                # Delete existing if found
-                if existing:
-                    await db.delete(
-                        "attendance",
-                        filters={
-                            "student_id": record.student_id,
-                            "batch_id": submission.batch_id,
-                            "class_date": submission.class_date.isoformat()
-                        }
+                if existing and len(existing) > 0:
+                    # Update existing record
+                    await db.update(
+                        'attendance',
+                        data={
+                            'status': status
+                        },
+                        filters={'id': existing[0]['id']}
                     )
-                    logger.info(f"Deleted existing attendance for {student_name}")
-                
-                # Step 4: Get current IN_PROGRESS session for student
-                session_id = None
-                try:
-                    student_sessions = await db.select(
-                        "student_sessions",
-                        filters={
-                            "student_id": record.student_id,
-                            "status": "IN_PROGRESS"
-                        }
-                    )
-                    if student_sessions and len(student_sessions) > 0:
-                        session_id = student_sessions[0]['session_id']
-                        logger.info(f"Found IN_PROGRESS session {session_id} for student {student_name}")
-                except Exception as e:
-                    logger.warning(f"Could not find session for student {student_name}: {e}")
-                    # Continue without session_id
-                
-                # Step 5: Create new attendance record
-                # IMPORTANT: Actual DB schema has session_id, NOT marked_by/marked_at/is_locked/attendance_type
-                attendance_data = {
-                    "student_id": record.student_id,
-                    "batch_id": submission.batch_id,
-                    "class_date": submission.class_date.isoformat(),
-                    "status": record.status,
-                    "notes": submission.notes
-                }
-                
-                # Add session_id if found
-                if session_id:
-                    attendance_data["session_id"] = session_id
-                
-                created = await db.insert("attendance", attendance_data)
-                
-                if created:
-                    marked_count += 1
-                    attendance_id = created[0]['id']
+                    logger.info(f"✅ Updated attendance for {student_id}: {status}")
+                else:
+                    # Insert new record - session_id is nullable
+                    insert_data = {
+                        'student_id': student_id,
+                        'batch_id': str(batch_id),
+                        'class_date': class_date.isoformat(),
+                        'status': status
+                    }
                     
-                    if record.status == 'PRESENT':
-                        present_count += 1
-                        
-                        # Step 6: Trigger session automation for qualifying attendance
-                        # This runs the 8-class completion check automatically
-                        try:
-                            from app.services.session_service import session_service
-                            
-                            automation_result = await session_service.process_attendance_completion(
-                                student_id=record.student_id,
-                                attendance_id=attendance_id
-                            )
-                            
-                            if automation_result.get('processed'):
-                                completion = automation_result.get('completion_result', {})
-                                if completion.get('completed'):
-                                    logger.info(f"🎉 Session completed for {student_name}! Fee automation triggered.")
-                                    if completion.get('fee_email_sent'):
-                                        logger.info(f"📧 Fee due email sent for {student_name}")
-                        
-                        except Exception as auto_error:
-                            # CRITICAL: Attendance must succeed even if automation fails
-                            logger.error(f"Session automation failed for {student_name}: {auto_error}")
-                            # Do not raise - attendance saving takes priority
-                    else:
-                        absent_count += 1
-                        
-                        # Step 7: Auto-create compensation request for absent student
-                        try:
-                            compensation_data = {
-                                "student_id": record.student_id,
-                                "original_attendance_id": attendance_id,
-                                "original_batch_id": submission.batch_id,
-                                "original_date": submission.class_date.isoformat(),
-                                "status": "PENDING_APPROVAL",
-                                "notes": f"Auto-created for absence on {submission.class_date}"
-                            }
-                            
-                            compensation = await db.insert("compensations", compensation_data)
-                            
-                            if compensation:
-                                logger.info(f"Auto-created compensation request for {student_name}")
-                                
-                                # Create notification for admin
-                                notification_data = {
-                                    "type": "COMPENSATION_REQUEST",
-                                    "title": "New Compensation Request",
-                                    "message": f"{student_name} was absent on {submission.class_date}. Compensation request created automatically.",
-                                    "priority": "NORMAL",
-                                    "status": "UNREAD",
-                                    "reference_type": "compensation",
-                                    "reference_id": compensation[0]['id']
-                                }
-                                
-                                await db.insert("notifications", notification_data)
-                        
-                        except Exception as comp_error:
-                            logger.warning(f"Failed to create compensation for {student_name}: {comp_error}")
-                            # Don't fail attendance submission if compensation creation fails
-                        
-                        # Step 8: Send absence notification
-                        try:
-                            # Get parent email from enrollment
-                            parent_email = student.get('parent_email')
-                            
-                            if parent_email:
-                                # Create email notification
-                                email_data = {
-                                    "recipient_email": parent_email,
-                                    "recipient_name": student.get('parent_first_name', 'Parent'),
-                                    "subject": f"Absence Notification - {student_name}",
-                                    "body": f"Dear Parent,\n\n{student_name} was marked absent on {submission.class_date}.\n\nA compensation/makeup class will be scheduled by the admin.\n\nArtfully",
-                                    "email_type": "ABSENCE_NOTIFICATION",
-                                    "status": "QUEUED",
-                                    "reference_type": "attendance",
-                                    "reference_id": attendance_id
-                                }
-                                
-                                await db.insert("email_events", email_data)
-                                emails_sent += 1
-                                logger.info(f"Absence email queued for {student_name}")
-                        
-                        except Exception as email_error:
-                            logger.warning(f"Failed to queue absence email for {student_name}: {email_error}")
-                            # Don't fail attendance submission if email fails
+                    logger.info(f"📝 Inserting attendance: {insert_data}")
+                    result = await db.insert('attendance', insert_data)
+                    logger.info(f"✅ Created attendance for {student_id}: {status}, result: {result}")
                 
-                logger.info(f"Marked {student_name} as {record.status}")
-                
+                marked_count += 1
+                if status == 'PRESENT':
+                    present_count += 1
+                elif status == 'ABSENT':
+                    absent_count += 1
+                    
             except Exception as e:
-                logger.error(f"Error processing student {record.student_id}: {str(e)}")
-                errors.append(f"Error processing student: {str(e)}")
+                logger.error(f"Error marking attendance for {student_id}: {str(e)}")
+                errors.append(f"Failed to mark {student_id}: {str(e)}")
         
-        logger.info(f"Attendance submitted: {marked_count} marked ({present_count} present, {absent_count} absent)")
+        response = {
+            "message": f"Attendance saved successfully for {batch_data['name']}",
+            "batch_id": str(batch_id),
+            "batch_name": batch_data['name'],
+            "class_date": class_date.isoformat(),
+            "marked_count": marked_count,
+            "present_count": present_count,
+            "absent_count": absent_count
+        }
         
-        if marked_count == 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No attendance records were created. Errors: " + "; ".join(errors)
-            )
+        if errors:
+            response["errors"] = errors
+            response["message"] += f" (with {len(errors)} errors)"
         
-        message = f"Attendance saved: {present_count} present, {absent_count} absent"
-        if emails_sent > 0:
-            message += f". {emails_sent} absence notification(s) sent."
-        
-        return AttendanceResponse(
-            success=True,
-            marked_count=marked_count,
-            present_count=present_count,
-            absent_count=absent_count,
-            emails_sent=emails_sent,
-            errors=errors,
-            message=message
-        )
+        logger.info(f"Attendance submission complete: {response}")
+        return response
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Attendance submission failed: {str(e)}", exc_info=True)
+        logger.error(f"Error submitting admin attendance: {str(e)}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Attendance submission failed: {str(e)}"
+            status_code=500,
+            detail=f"Failed to save attendance: {str(e)}"
         )
 
 
-@router.get("/today")
-async def get_today_attendance(
-    current_user: dict = Depends(require_staff)
+@router.get("/admin/batches/{batch_id}/students")
+async def get_batch_students(
+    batch_id: UUID,
+    current_user: dict = Depends(require_admin)
 ):
     """
-    Get today's attendance records
-    
-    **Security:** Requires STAFF role
+    Get all students enrolled in a specific batch
     """
     try:
-        today = date.today().isoformat()
-        
-        attendance = await db.select(
-            "attendance",
-            filters={"class_date": today},
-            order_by="marked_at.desc"
+        # Get all enrollments
+        all_enrollments = await db.select(
+            'enrollments',
+            columns='student_id, student_first_name, student_last_name, status',
+            filters={'status': 'ACTIVE'}
         )
         
+        # Return all students (admin can mark anyone in any batch)
+        batch_students = []
+        if all_enrollments:
+            for enrollment in all_enrollments:
+                full_name = f"{enrollment['student_first_name']} {enrollment['student_last_name']}"
+                batch_students.append({
+                    'student_id': enrollment['student_id'],
+                    'student_name': full_name,
+                    'student_ref_id': enrollment['student_id']
+                })
+        
         return {
-            "date": today,
-            "records": attendance,
-            "count": len(attendance)
+            "batch_id": str(batch_id),
+            "students": batch_students,
+            "count": len(batch_students)
         }
         
     except Exception as e:
-        logger.error(f"Failed to get today's attendance: {str(e)}")
+        logger.error(f"Error getting batch students: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get attendance: {str(e)}"
+            status_code=500,
+            detail=f"Failed to get students: {str(e)}"
+        )
+
+
+@router.get("/admin/students-for-attendance")
+async def get_students_for_attendance(
+    batch_id: Optional[str] = Query(None, description="Filter by batch ID, or omit for all batches"),
+    current_user: dict = Depends(require_admin)
+):
+    """
+    Get all active students with their batch enrollments for attendance marking
+    Returns students from enrollment table, optionally filtered by batch
+    """
+    try:
+        # Get all active enrollments - avoid selecting batch_ids array column
+        # Order by student_id for consistent ordering (ART1001, ART1002, etc.)
+        all_enrollments = await db.select(
+            'enrollments',
+            columns='student_id, student_first_name, student_last_name, status',
+            filters={'status': 'ACTIVE'},
+            order_by='student_id.asc',
+            limit=1000
+        )
+        
+        if not all_enrollments:
+            logger.info("No active enrollments found")
+            return []
+        
+        logger.info(f"Found {len(all_enrollments)} active enrollments")
+        
+        # Get batch info
+        if batch_id:
+            # Get specific batch
+            batch_result = await db.select(
+                'batches',
+                columns='id, name',
+                filters={'id': batch_id, 'is_active': True},
+                limit=1
+            )
+            
+            if not batch_result:
+                raise HTTPException(status_code=404, detail="Batch not found")
+            
+            batch_name = batch_result[0]['name']
+            
+            # Return all students for this batch (ordered by student_id)
+            result = []
+            for enrollment in all_enrollments:
+                full_name = f"{enrollment['student_first_name']} {enrollment['student_last_name']}"
+                result.append({
+                    'student_id': enrollment['student_id'],
+                    'student_name': full_name,
+                    'student_ref_id': enrollment['student_id'],
+                    'batch_id': batch_id,
+                    'batch_name': batch_name
+                })
+            
+            logger.info(f"Returning {len(result)} students for batch {batch_name}")
+            return result
+        else:
+            # Get all batches
+            all_batches = await db.select(
+                'batches',
+                columns='id, name',
+                filters={'is_active': True}
+            )
+            
+            if not all_batches:
+                logger.info("No active batches found")
+                return []
+            
+            logger.info(f"Found {len(all_batches)} active batches")
+            
+            # For "All Batches", get student-batch pairs from recent attendance
+            recent_attendance = await db.select(
+                'attendance',
+                columns='student_id, batch_id',
+                order_by='class_date.desc',
+                limit=2000
+            )
+            
+            # Create a set of unique student-batch pairs
+            student_batch_pairs = set()
+            if recent_attendance:
+                for att in recent_attendance:
+                    student_batch_pairs.add((att['student_id'], att['batch_id']))
+            
+            logger.info(f"Found {len(student_batch_pairs)} student-batch pairs from attendance history")
+            
+            # Create batch map
+            batch_map = {b['id']: b['name'] for b in all_batches}
+            
+            # Create student map
+            student_map = {
+                s['student_id']: {
+                    'student_name': f"{s['student_first_name']} {s['student_last_name']}",
+                    'student_ref_id': s['student_id']
+                }
+                for s in all_enrollments
+            }
+            
+            # Build result from attendance history
+            result = []
+            for student_id, batch_id in student_batch_pairs:
+                if student_id in student_map and batch_id in batch_map:
+                    result.append({
+                        'student_id': student_id,
+                        'student_name': student_map[student_id]['student_name'],
+                        'student_ref_id': student_map[student_id]['student_ref_id'],
+                        'batch_id': batch_id,
+                        'batch_name': batch_map[batch_id]
+                    })
+            
+            # Sort by student_id for consistent ordering (ART1001, ART1002, etc.)
+            result.sort(key=lambda x: x['student_id'])
+            
+            logger.info(f"Returning {len(result)} student-batch records from attendance history")
+            return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting students for attendance: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get students: {str(e)}"
         )
