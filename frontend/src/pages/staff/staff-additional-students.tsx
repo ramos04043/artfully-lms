@@ -48,12 +48,14 @@ export default function StaffAdditionalStudents() {
     try {
       setLoading(true)
       setError('')
-      setSuccess('')
 
       if (!user?.id) {
         setError('User not authenticated')
+        setLoading(false)
         return
       }
+
+      console.log('Loading additional students for user:', user.id)
 
       // Load all students with their batches
       const studentsResponse = await fetch(
@@ -66,6 +68,8 @@ export default function StaffAdditionalStudents() {
 
       const studentsData = await studentsResponse.json()
       const rawStudents = studentsData.students || []
+      
+      console.log('Raw students loaded:', rawStudents.length)
 
       // Load ALL available batches
       const batchesResponse = await fetch(
@@ -75,6 +79,7 @@ export default function StaffAdditionalStudents() {
       if (batchesResponse.ok) {
         const batchesData = await batchesResponse.json()
         setAllBatches(batchesData.batches || [])
+        console.log('Batches loaded:', batchesData.batches?.length || 0)
       }
 
       // Group students by student_id
@@ -104,9 +109,12 @@ export default function StaffAdditionalStudents() {
       // Frontend will highlight which batches are additional
       const groupedStudents = Array.from(studentMap.values())
       setStudents(groupedStudents)
+      
+      console.log('Grouped students set:', groupedStudents.length)
 
       if (groupedStudents.length === 0) {
-        setError('No students found')
+        console.warn('No students found')
+        setError('No students found. If you just marked attendance, please refresh the page.')
       }
 
     } catch (err: any) {
@@ -114,6 +122,7 @@ export default function StaffAdditionalStudents() {
       setError(err.message || 'Failed to load students')
     } finally {
       setLoading(false)
+      console.log('Loading complete')
     }
   }
 
@@ -153,6 +162,7 @@ export default function StaffAdditionalStudents() {
 
       if (!user?.id) {
         setError('User not authenticated')
+        setSaving(false)
         return
       }
 
@@ -164,6 +174,7 @@ export default function StaffAdditionalStudents() {
 
       if (attendanceRecords.length === 0) {
         setError('Please mark at least one batch')
+        setSaving(false)
         return
       }
 
@@ -207,22 +218,26 @@ export default function StaffAdditionalStudents() {
         return
       }
 
-      setSuccess(`Attendance saved for ${result.saved} batch(es)`)
+      // Success - show message and close modal
+      setSuccess(`✅ Attendance saved successfully for ${result.saved} batch(es) - ${selectedStudent?.first_name} ${selectedStudent?.last_name}`)
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000)
-      
-      // Close modal immediately
+      // Close modal first
       handleCloseModal()
       
-      // Reload data immediately (don't wait)
-      loadAdditionalStudents()
+      // Wait a moment before reloading to ensure modal is closed
+      setTimeout(async () => {
+        await loadAdditionalStudents()
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(''), 5000)
+      }, 300)
 
     } catch (err: any) {
       console.error('Error saving attendance:', err)
       setError(err.message || 'Failed to save attendance')
-    } finally {
       setSaving(false)
+    } finally {
+      // Don't set saving to false here if we're waiting for reload
+      // It will be handled by the component state
     }
   }
 
@@ -236,13 +251,29 @@ export default function StaffAdditionalStudents() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Users className="h-7 w-7 text-art-indigo" />
-          All Students - Additional Classes
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Click on any student to view their batches and mark attendance
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Users className="h-7 w-7 text-art-indigo" />
+              All Students - Additional Classes
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Click on any student to view their batches and mark attendance
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setError('')
+              setSuccess('')
+              loadAdditionalStudents()
+            }}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <Loader2 className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Error Message */}
