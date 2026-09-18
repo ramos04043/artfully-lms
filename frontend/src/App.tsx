@@ -26,6 +26,8 @@ import AttendancePage from '@/pages/admin/attendance/attendance-page'
 import AdminMarkAttendancePage from '@/pages/admin/attendance/admin-attendance-page'
 import AttendanceReportsPage from '@/pages/admin/attendance/attendance-reports-page'
 import CompensationPage from '@/pages/admin/compensation/compensation-page'
+import MarkHolidayPage from '@/pages/admin/holidays/mark-holiday-page'
+import HolidayHistoryPage from '@/pages/admin/holidays/holiday-history-page'
 import FeesPage from '@/pages/admin/fees/fees-page'
 import FinanceOverviewPage from '@/pages/admin/finance/finance-overview-page'
 import CapexPage from '@/pages/admin/finance/capex-page'
@@ -110,6 +112,8 @@ function App() {
                   <Route path="/attendance/mark" element={<AdminMarkAttendancePage />} />
                   <Route path="/attendance/reports" element={<AttendanceReportsPage />} />
                   <Route path="/compensation" element={<CompensationPage />} />
+                  <Route path="/holidays/mark" element={<MarkHolidayPage />} />
+                  <Route path="/holidays/history" element={<HolidayHistoryPage />} />
                   <Route path="/fees" element={<FeesPage />} />
                   <Route path="/finance" element={<FinanceOverviewPage />} />
                   <Route path="/finance/capex" element={<CapexPage />} />

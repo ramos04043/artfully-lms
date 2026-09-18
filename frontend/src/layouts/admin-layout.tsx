@@ -37,6 +37,8 @@ const navigation = [
   { name: 'Attendance', href: '/admin/attendance', icon: BarChart3 },
   { name: 'Attendance Reports', href: '/admin/attendance/reports', icon: FileText },
   { name: 'Compensation', href: '/admin/compensation', icon: Clock },
+  { name: 'Mark Holiday', href: '/admin/holidays/mark', icon: Calendar },
+  { name: 'Holiday History', href: '/admin/holidays/history', icon: FileText },
   { name: 'Expenses', href: '/admin/finance/expenses', icon: TrendingDown },
   { name: 'Revenue', href: '/admin/finance/revenue', icon: DollarSign },
   { name: 'Fees', href: '/admin/fees', icon: Wallet },
