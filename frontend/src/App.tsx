@@ -45,6 +45,7 @@ import SettingsPage from '@/pages/admin/settings/settings-page'
 import StaffToday from '@/pages/staff/staff-today'
 import StaffAttendance from '@/pages/staff/staff-attendance'
 import StaffAdditionalStudents from '@/pages/staff/staff-additional-students'
+import StaffAttendanceHistory from '@/pages/staff/staff-attendance-history'
 import StaffHistory from '@/pages/staff/staff-history'
 import StaffProfile from '@/pages/staff/staff-profile'
 
@@ -144,6 +145,7 @@ function App() {
                   <Route path="/" element={<StaffToday />} />
                   <Route path="/attendance/:batchId" element={<StaffAttendance />} />
                   <Route path="/additional-students" element={<StaffAdditionalStudents />} />
+                  <Route path="/attendance-history" element={<StaffAttendanceHistory />} />
                   <Route path="/history" element={<StaffHistory />} />
                   <Route path="/profile" element={<StaffProfile />} />
                 </Routes>

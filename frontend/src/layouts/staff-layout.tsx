@@ -1,7 +1,7 @@
 import { ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
-import { Home, Users, User, LogOut } from 'lucide-react'
+import { Home, Users, User, LogOut, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface StaffLayoutProps {
@@ -11,6 +11,7 @@ interface StaffLayoutProps {
 const navigation = [
   { name: 'Today', href: '/staff', icon: Home },
   { name: 'Additional Students', href: '/staff/additional-students', icon: Users },
+  { name: 'Attendance History', href: '/staff/attendance-history', icon: History },
   { name: 'Profile', href: '/staff/profile', icon: User },
 ]
 

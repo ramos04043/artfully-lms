@@ -1640,3 +1640,148 @@ async def get_batch_students(batch_id: UUID, user_id: str):
     except Exception as e:
         logger.error(f"Error fetching batch students: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to fetch students: {str(e)}")
+
+
+# ============================================================================
+# STAFF ATTENDANCE HISTORY ENDPOINTS
+# ============================================================================
+
+@router.get("/attendance-history")
+async def get_staff_attendance_history(
+    user_id: str,
+    batch_ids: str,
+    start_date: str,
+    end_date: str
+):
+    """
+    Get attendance history for staff's batches within a date range
+    """
+    try:
+        # Split batch IDs
+        batch_id_list = [bid.strip() for bid in batch_ids.split(',') if bid.strip()]
+        
+        if not batch_id_list:
+            return {"attendance": []}
+        
+        logger.info(f"Fetching attendance history for batches: {batch_id_list}")
+        logger.info(f"Date range: {start_date} to {end_date}")
+        
+        # Get attendance records
+        attendance_records = await db.select(
+            'attendance',
+            columns='id, student_id, batch_id, class_date, status, created_at, updated_at',
+            order_by='class_date.desc',
+            limit=1000
+        )
+        
+        if not attendance_records:
+            return {"attendance": []}
+        
+        # Filter by date range and batch IDs
+        filtered_records = []
+        for record in attendance_records:
+            if (record['class_date'] >= start_date and 
+                record['class_date'] <= end_date and
+                record['batch_id'] in batch_id_list and
+                record['status'] in ['PRESENT', 'ABSENT']):
+                filtered_records.append(record)
+        
+        # Get student names from enrollments
+        enrollments = await db.select(
+            'enrollments',
+            columns='student_id, student_first_name, student_last_name',
+            filters={'status': 'ACTIVE'},
+            limit=1000
+        )
+        
+        student_map = {
+            e['student_id']: f"{e['student_first_name']} {e['student_last_name']}"
+            for e in (enrollments or [])
+        }
+        
+        # Get batch names
+        batches = await db.select(
+            'batches',
+            columns='id, name',
+            filters={'is_active': True}
+        )
+        
+        batch_map = {b['id']: b['name'] for b in (batches or [])}
+        
+        # Enrich records with names
+        enriched_records = []
+        for record in filtered_records:
+            enriched_records.append({
+                'id': record['id'],
+                'student_id': record['student_id'],
+                'student_name': student_map.get(record['student_id'], 'Unknown Student'),
+                'batch_id': record['batch_id'],
+                'batch_name': batch_map.get(record['batch_id'], 'Unknown Batch'),
+                'class_date': record['class_date'],
+                'status': record['status'],
+                'marked_at': record.get('created_at'),
+                'updated_at': record.get('updated_at')
+            })
+        
+        logger.info(f"Returning {len(enriched_records)} attendance records")
+        return {"attendance": enriched_records}
+        
+    except Exception as e:
+        logger.error(f"Error fetching attendance history: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch attendance history: {str(e)}"
+        )
+
+
+@router.patch("/attendance/{attendance_id}/edit")
+async def edit_attendance_record(
+    attendance_id: str,
+    update_data: dict
+):
+    """
+    Edit an attendance record (change status from Present to Absent or vice versa)
+    """
+    try:
+        user_id = update_data.get('user_id')
+        new_status = update_data.get('status')
+        
+        if not new_status or new_status not in ['PRESENT', 'ABSENT']:
+            raise HTTPException(status_code=400, detail="Invalid status. Must be PRESENT or ABSENT")
+        
+        logger.info(f"Updating attendance {attendance_id} to {new_status} by user {user_id}")
+        
+        # Check if record exists
+        existing = await db.select(
+            'attendance',
+            columns='id, student_id, batch_id, status',
+            filters={'id': attendance_id},
+            limit=1
+        )
+        
+        if not existing or len(existing) == 0:
+            raise HTTPException(status_code=404, detail="Attendance record not found")
+        
+        # Update the record
+        await db.update(
+            'attendance',
+            data={'status': new_status},
+            filters={'id': attendance_id}
+        )
+        
+        logger.info(f"✅ Attendance {attendance_id} updated to {new_status}")
+        
+        return {
+            "message": "Attendance updated successfully",
+            "id": attendance_id,
+            "new_status": new_status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating attendance: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update attendance: {str(e)}"
+        )
