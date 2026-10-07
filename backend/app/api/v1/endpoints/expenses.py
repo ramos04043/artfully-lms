@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import date
 from app.services.finance_service import FinanceService
-from app.auth.deps import require_admin
 from app.zendbx_client import db
 import logging
 
@@ -24,8 +23,7 @@ class ExpenseCreate(BaseModel):
 
 @router.post("/expenses")
 async def create_expense(
-    expense: ExpenseCreate,
-    current_user: dict = Depends(require_admin)
+    expense: ExpenseCreate
 ):
     """
     Create a new expense using centralized FinanceService
@@ -80,9 +78,7 @@ async def create_expense(
             "expense_date": expense.expense_date.isoformat(),
             "vendor_name": expense.vendor_name,
             "description": expense.description,
-            "receipt_url": expense.receipt_url,
-            "payment_mode": expense.account_mode,
-            "status": "APPROVED"
+            "payment_mode": expense.account_mode
         }
         
         expense_records = await db.insert("expenses", expense_data)
@@ -106,7 +102,7 @@ async def create_expense(
                 reference_type="EXPENSE",
                 reference_id=expense_id,
                 transaction_date=expense.expense_date,
-                created_by=current_user.get('email') or current_user.get('id')
+                created_by=None  # No user tracking without authentication
             )
         except ValueError as e:
             # Rollback: delete expense record
@@ -175,8 +171,7 @@ async def get_expenses():
 @router.post("/expenses/{expense_id}/void")
 async def void_expense(
     expense_id: str,
-    reason: str = "Expense voided by administrator",
-    current_user: dict = Depends(require_admin)
+    reason: str = "Expense voided by administrator"
 ):
     """
     Void an expense (soft delete with audit trail)
@@ -222,7 +217,7 @@ async def void_expense(
         try:
             await FinanceService.void_transaction(
                 transaction_id=transaction_id,
-                voided_by=current_user.get('email') or current_user.get('id'),
+                voided_by=None,  # No user tracking without authentication
                 reason=reason
             )
         except ValueError as e:
@@ -234,7 +229,7 @@ async def void_expense(
             "expenses",
             data={
                 "voided_at": datetime.now().isoformat(),
-                "voided_by": current_user.get('email') or current_user.get('id'),
+                "voided_by": None,  # No user tracking without authentication
                 "voided_reason": reason
             },
             filters={"id": expense_id}
@@ -289,9 +284,7 @@ async def get_categories(
 
 
 @router.post("/expenses/reconcile-orphaned")
-async def reconcile_orphaned_expenses(
-    current_user: dict = Depends(require_admin)
-):
+async def reconcile_orphaned_expenses():
     """
     Find and fix expenses where transaction is voided but expense record is not.
     

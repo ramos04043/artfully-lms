@@ -436,7 +436,7 @@ export default function AdditionalClassesPage() {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
                           <span className="text-blue-600 font-semibold">
-                            {student.student_first_name[0]}{student.student_last_name[0]}
+                            {student.student_first_name?.[0] || '?'}{student.student_last_name?.[0] || ''}
                           </span>
                         </div>
                         <div className="ml-4">

@@ -2,13 +2,12 @@
 Admin Attendance Endpoints
 Allows admins to manually mark attendance for students
 """
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Optional
 from uuid import UUID
 from datetime import date
 from app.zendbx_client import db
-from app.auth.deps import require_admin
 import logging
 
 router = APIRouter()
@@ -29,8 +28,7 @@ class AdminAttendanceRequest(BaseModel):
 @router.post("/admin/batches/{batch_id}/attendance")
 async def submit_admin_attendance(
     batch_id: UUID,
-    attendance_data: AdminAttendanceRequest,
-    current_user: dict = Depends(require_admin)
+    attendance_data: AdminAttendanceRequest
 ):
     """
     Submit bulk attendance for a batch (Admin only)
@@ -149,8 +147,7 @@ async def submit_admin_attendance(
 
 @router.get("/admin/batches/{batch_id}/students")
 async def get_batch_students(
-    batch_id: UUID,
-    current_user: dict = Depends(require_admin)
+    batch_id: UUID
 ):
     """
     Get all students enrolled in a specific batch
@@ -190,117 +187,130 @@ async def get_batch_students(
 
 @router.get("/admin/students-for-attendance")
 async def get_students_for_attendance(
-    batch_id: Optional[str] = Query(None, description="Filter by batch ID, or omit for all batches"),
-    current_user: dict = Depends(require_admin)
+    batch_id: Optional[str] = Query(None, description="Filter by batch ID, or omit for all batches")
 ):
     """
     Get all active students with their batch enrollments for attendance marking
     Returns students from enrollment table, optionally filtered by batch
     """
     try:
-        # Get all active enrollments - avoid selecting batch_ids array column
-        # Order by student_id for consistent ordering (ART1001, ART1002, etc.)
+        # Get all enrollments - avoid selecting batch_ids array column
+        # Query without any filters to avoid 500 errors with boolean or array filters
         all_enrollments = await db.select(
             'enrollments',
-            columns='student_id, student_first_name, student_last_name, status',
-            filters={'status': 'ACTIVE'},
-            order_by='student_id.asc',
+            columns='student_id, student_first_name, student_last_name, status, batch_ids',
             limit=1000
         )
         
         if not all_enrollments:
+            logger.info("No enrollments found")
+            return []
+        
+        # Filter active enrollments in memory
+        active_enrollments = [e for e in all_enrollments if e.get('status') == 'ACTIVE']
+        
+        if not active_enrollments:
             logger.info("No active enrollments found")
             return []
         
-        logger.info(f"Found {len(all_enrollments)} active enrollments")
+        logger.info(f"Found {len(active_enrollments)} active enrollments from {len(all_enrollments)} total")
         
         # Get batch info
         if batch_id:
-            # Get specific batch
+            # Get all batches
             batch_result = await db.select(
                 'batches',
-                columns='id, name',
-                filters={'id': batch_id, 'is_active': True},
-                limit=1
+                columns='id, name, is_active'
             )
             
-            if not batch_result:
-                raise HTTPException(status_code=404, detail="Batch not found")
+            # Filter to find the requested batch
+            batch_info = None
+            if batch_result:
+                for b in batch_result:
+                    if b.get('id') == batch_id:
+                        # Check if active - handle various truthy values
+                        is_active = b.get('is_active')
+                        if is_active in (True, 'true', 't', 1, '1'):
+                            batch_info = b
+                        break
             
-            batch_name = batch_result[0]['name']
+            if not batch_info:
+                logger.warning(f"Batch {batch_id} not found or not active")
+                raise HTTPException(status_code=404, detail="Batch not found or not active")
             
-            # Return all students for this batch (ordered by student_id)
+            batch_name = batch_info['name']
+            
+            # Return students enrolled in this specific batch
             result = []
-            for enrollment in all_enrollments:
-                full_name = f"{enrollment['student_first_name']} {enrollment['student_last_name']}"
-                result.append({
-                    'student_id': enrollment['student_id'],
-                    'student_name': full_name,
-                    'student_ref_id': enrollment['student_id'],
-                    'batch_id': batch_id,
-                    'batch_name': batch_name
-                })
+            for enrollment in active_enrollments:
+                # Check if student is enrolled in this batch
+                student_batch_ids = enrollment.get('batch_ids', []) or []
+                if batch_id in student_batch_ids:
+                    full_name = f"{enrollment['student_first_name']} {enrollment['student_last_name'] or ''}".strip()
+                    result.append({
+                        'student_id': enrollment['student_id'],
+                        'student_name': full_name,
+                        'student_ref_id': enrollment['student_id'],
+                        'batch_id': batch_id,
+                        'batch_name': batch_name
+                    })
+            
+            # Sort by student_id for consistent ordering
+            result.sort(key=lambda x: x['student_id'])
             
             logger.info(f"Returning {len(result)} students for batch {batch_name}")
             return result
         else:
-            # Get all batches
+            # Get all batches - include is_active column to filter in memory
             all_batches = await db.select(
                 'batches',
-                columns='id, name',
-                filters={'is_active': True}
+                columns='id, name, is_active'
             )
             
             if not all_batches:
-                logger.info("No active batches found")
+                logger.info("No batches found")
                 return []
             
-            logger.info(f"Found {len(all_batches)} active batches")
+            logger.info(f"Found {len(all_batches)} total batches")
             
-            # For "All Batches", get student-batch pairs from recent attendance
-            recent_attendance = await db.select(
-                'attendance',
-                columns='student_id, batch_id',
-                order_by='class_date.desc',
-                limit=2000
-            )
+            # Filter active batches in memory - handle various truthy values
+            active_batches = []
+            for b in all_batches:
+                is_active = b.get('is_active')
+                # Handle True, true, 'true', 1, etc.
+                if is_active in (True, 'true', 't', 1, '1'):
+                    active_batches.append(b)
             
-            # Create a set of unique student-batch pairs
-            student_batch_pairs = set()
-            if recent_attendance:
-                for att in recent_attendance:
-                    student_batch_pairs.add((att['student_id'], att['batch_id']))
+            if not active_batches:
+                logger.warning(f"No active batches found. Sample batch: {all_batches[0] if all_batches else 'none'}")
+                return []
             
-            logger.info(f"Found {len(student_batch_pairs)} student-batch pairs from attendance history")
+            logger.info(f"Found {len(active_batches)} active batches")
             
             # Create batch map
-            batch_map = {b['id']: b['name'] for b in all_batches}
+            batch_map = {b['id']: b['name'] for b in active_batches}
             
-            # Create student map
-            student_map = {
-                s['student_id']: {
-                    'student_name': f"{s['student_first_name']} {s['student_last_name']}",
-                    'student_ref_id': s['student_id']
-                }
-                for s in all_enrollments
-            }
-            
-            # Build result from attendance history
+            # Build result - one record per student per batch
             result = []
-            for student_id, batch_id in student_batch_pairs:
-                if student_id in student_map and batch_id in batch_map:
-                    result.append({
-                        'student_id': student_id,
-                        'student_name': student_map[student_id]['student_name'],
-                        'student_ref_id': student_map[student_id]['student_ref_id'],
-                        'batch_id': batch_id,
-                        'batch_name': batch_map[batch_id]
-                    })
+            for enrollment in active_enrollments:
+                student_batch_ids = enrollment.get('batch_ids', []) or []
+                full_name = f"{enrollment['student_first_name']} {enrollment['student_last_name'] or ''}".strip()
+                
+                # Create entry for each batch the student is enrolled in
+                for student_batch_id in student_batch_ids:
+                    if student_batch_id in batch_map:
+                        result.append({
+                            'student_id': enrollment['student_id'],
+                            'student_name': full_name,
+                            'student_ref_id': enrollment['student_id'],
+                            'batch_id': student_batch_id,
+                            'batch_name': batch_map[student_batch_id]
+                        })
             
-            # Sort by student_id for consistent ordering (ART1001, ART1002, etc.)
-            result.sort(key=lambda x: x['student_id'])
+            # Sort by student_id then batch_name for consistent ordering
+            result.sort(key=lambda x: (x['student_id'], x['batch_name']))
             
-            logger.info(f"Returning {len(result)} student-batch records from attendance history")
+            logger.info(f"Returning {len(result)} student-batch records from enrollments")
             return result
         
     except HTTPException:

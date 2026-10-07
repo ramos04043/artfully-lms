@@ -31,68 +31,85 @@ export const signUpWithZendBX = async (
 };
 
 /**
- * Sign in an existing user with ZendBX
- * Uses ZendBX's built-in auth schema
+ * Sign in an existing user with Custom Backend Auth
+ * Uses our custom app_users table
  */
 export const signInWithZendBX = async (email: string, password: string) => {
   console.log('🔵 [signInWithZendBX] Starting sign in for:', email);
   
-  const response = await db.auth.signIn({
-    email,
-    password,
-  });
+  try {
+    // Use backend custom auth endpoint instead of ZendBX Auth
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
 
-  console.log('📦 [signInWithZendBX] Raw response from ZendBX:', response);
+    const data = await response.json();
+    console.log('📦 [signInWithZendBX] Raw response from backend:', data);
 
-  // Handle response - it might be directly the data or wrapped
-  const session = response?.access_token ? response : (response?.data || response);
-  const zendbxUser = response?.user;
+    if (!response.ok) {
+      console.error('❌ [signInWithZendBX] Login failed:', data);
+      return { 
+        data: null, 
+        error: { message: data.detail || 'Login failed' }
+      };
+    }
 
-  console.log('🔐 Session:', session);
-  console.log('👤 ZendBX User:', zendbxUser);
+    const { access_token, user: backendUser } = data;
 
-  if (!session || !session.access_token) {
-    console.error('❌ [signInWithZendBX] No valid session in response');
-    return { 
-      data: null, 
-      error: response?.error || { message: 'Invalid response from authentication server' } 
+    console.log('🔐 Token:', access_token ? 'Present' : 'Missing');
+    console.log('👤 User:', backendUser);
+
+    if (!access_token || !backendUser) {
+      console.error('❌ [signInWithZendBX] No valid session in response');
+      return { 
+        data: null, 
+        error: { message: 'Invalid response from authentication server' } 
+      };
+    }
+
+    // Store token in localStorage
+    localStorage.setItem('zendbx_token', access_token);
+    localStorage.setItem('artfully_token', access_token); // Backup
+    console.log('✅ Token stored in localStorage');
+
+    // Map backend user to our User type
+    const user: User = {
+      id: backendUser.id,
+      email: backendUser.email,
+      role: backendUser.role || 'ADMIN',
+      first_name: backendUser.first_name || backendUser.username,
+      last_name: backendUser.last_name || '',
+      phone: backendUser.phone || '',
+      is_active: backendUser.is_active !== undefined ? backendUser.is_active : true,
+      created_at: backendUser.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    console.log('✅ [signInWithZendBX] User mapped successfully:', user);
+
+    // Sync with local auth store
+    useAuthStore.getState().setAuth(
+      user,
+      access_token
+    );
+
+    console.log('✅ [signInWithZendBX] Auth store updated');
+
+    return { data: { user, session: { access_token } }, error: null };
+  } catch (error: any) {
+    console.error('❌ [signInWithZendBX] Exception:', error);
+    return {
+      data: null,
+      error: { message: error.message || 'Login failed' }
     };
   }
-
-  // Store token in localStorage manually (in case SDK doesn't do it)
-  localStorage.setItem('zendbx_token', session.access_token);
-  console.log('✅ Token stored in localStorage');
-
-  // Map ZendBX auth user to our User type
-  const [firstName, ...lastNameParts] = (zendbxUser?.username || zendbxUser?.email?.split('@')[0] || 'User').split('_');
-  const lastName = lastNameParts.join(' ') || 'Name';
-
-  // Determine role based on email (temporary - should be stored in ZendBX user metadata)
-  const role: 'ADMIN' | 'STAFF' = zendbxUser?.email?.includes('admin') ? 'ADMIN' : 'STAFF';
-
-  const user: User = {
-    id: zendbxUser?.id || session.sub,
-    email: zendbxUser?.email || '',
-    role: role,
-    first_name: firstName,
-    last_name: lastName,
-    phone: zendbxUser?.phone || '',
-    is_active: true,
-    created_at: zendbxUser?.created_at || new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  console.log('✅ [signInWithZendBX] User mapped successfully:', user);
-
-  // Sync with local auth store
-  useAuthStore.getState().setAuth(
-    user,
-    session.access_token
-  );
-
-  console.log('✅ [signInWithZendBX] Auth store updated');
-
-  return { data: { user, session }, error: null };
 };
 
 /**

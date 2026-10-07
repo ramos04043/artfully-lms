@@ -42,16 +42,16 @@ async function seedAdmin() {
   console.log('')
 
   try {
-    // Step 1: Check if admin already exists in user_profiles
+    // Step 1: Check if admin already exists in users table
     console.log('🔍 Checking if admin exists...')
     const { data: existingRecords } = await db
-      .from('user_profiles')
+      .from('users')
       .select('*')
       .eq('email', ADMIN_EMAIL)
 
-    const existingProfile = existingRecords?.[0]
+    const existingUser = existingRecords?.[0]
 
-    if (existingProfile) {
+    if (existingUser) {
       console.log('✅ Admin user already exists!')
       console.log('📧 Email:', ADMIN_EMAIL)
       console.log('🔑 Password: artfully@123')
@@ -84,21 +84,20 @@ async function seedAdmin() {
     if (!authUserId) {
       console.error('❌ Could not find user ID in response')
       console.log('💡 Check ZendBX Console → Authentication to see if user was created')
-      console.log('💡 If user exists, get the ID and run this SQL:')
-      console.log(`
-INSERT INTO user_profiles (auth_user_id, email, first_name, last_name, role, is_active)
-VALUES ('<USER_ID_HERE>', '${ADMIN_EMAIL}', 'Admin', 'User', 'ADMIN', true);
-      `)
-      throw new Error('Failed to get auth user ID from signup response')
+      console.log('💡 If user exists, you can login with:')
+      console.log('   Email:', ADMIN_EMAIL)
+      console.log('   Password:', ADMIN_PASSWORD)
+      return
     }
 
-    // Step 3: Create profile in user_profiles
-    console.log('👤 Creating admin profile...')
-    const { data: profileData, error: profileError } = await db
-      .from('user_profiles')
+    // Step 3: Create user in users table
+    console.log('👤 Creating admin user in database...')
+    const { data: userData, error: userError } = await db
+      .from('users')
       .insert({
-        auth_user_id: authUserId,
+        id: authUserId,
         email: ADMIN_EMAIL,
+        password_hash: 'managed_by_zendbx_auth',
         first_name: 'Admin',
         last_name: 'User',
         phone: null,
@@ -107,14 +106,14 @@ VALUES ('<USER_ID_HERE>', '${ADMIN_EMAIL}', 'Admin', 'User', 'ADMIN', true);
       })
       .select()
 
-    const profileData = profileResult.data?.[0]
-
-    if (profileError) {
-      console.error('❌ Profile creation error:', profileError)
-      throw profileError
+    if (userError) {
+      console.error('❌ User creation error:', userError)
+      console.log('💡 User might already exist in users table')
+      console.log('💡 Try logging in with:', ADMIN_EMAIL)
+      return
     }
 
-    console.log('✅ Admin profile created:', profileData)
+    console.log('✅ Admin user created:', userData?.[0])
 
     console.log('')
     console.log('🎉 Admin user seeded successfully!')

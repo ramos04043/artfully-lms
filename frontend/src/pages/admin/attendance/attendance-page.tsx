@@ -21,7 +21,6 @@ interface AttendanceRecord {
   id: string
   student_id: string
   batch_id: string
-  session_id: string
   class_date: string
   status: string
   notes?: string
@@ -196,7 +195,7 @@ export default function AttendancePage() {
       // Build query - match actual database schema
       let query = db
         .from('attendance')
-        .select('id, student_id, batch_id, session_id, class_date, status, notes, created_at, updated_at')
+        .select('id, student_id, batch_id, class_date, status, notes, created_at, updated_at')
         .gte('class_date', startDate)
         .lte('class_date', endDate)
         .order('class_date', { ascending: false })

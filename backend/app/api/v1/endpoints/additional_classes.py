@@ -3,13 +3,12 @@ Additional Classes Management API
 Allows admin to assign students to batches beyond their regular enrollment
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import logging
 
-from app.auth.deps import require_admin
 from app.zendbx_client import db
 
 router = APIRouter()
@@ -53,17 +52,14 @@ class BatchStudentsList(BaseModel):
 
 
 @router.get("/assignments", response_model=List[AdditionalClassAssignment])
-async def get_all_additional_class_assignments(
-    current_user: dict = Depends(require_admin)
-):
+async def get_all_additional_class_assignments():
     """
     Get all additional class assignments
     
     Returns list of students assigned to batches as additional classes.
-    **Security:** Requires ADMIN role
     """
     try:
-        logger.info(f"Admin {current_user['id']} fetching all additional class assignments")
+        logger.info("Fetching all additional class assignments")
         
         # Get all active additional class assignments
         try:
@@ -150,20 +146,18 @@ async def get_all_additional_class_assignments(
 
 @router.post("/assign", response_model=AssignAdditionalClassResponse)
 async def assign_additional_class(
-    request: AssignAdditionalClassRequest,
-    current_user: dict = Depends(require_admin)
+    request: AssignAdditionalClassRequest
 ):
     """
     Assign a student to a batch as additional class
     
-    **Security:** Requires ADMIN role
     **Validation:**
     - Student must exist
     - Batch must exist and be active
     - Prevents duplicate assignments
     """
     try:
-        logger.info(f"Admin {current_user['id']} assigning student {request.student_id} to batch {request.batch_id}")
+        logger.info(f"Assigning student {request.student_id} to batch {request.batch_id}")
         
         # Validate student exists in enrollments
         enrollments = await db.select(
@@ -211,7 +205,6 @@ async def assign_additional_class(
         assignment_data = {
             'student_id': request.student_id,
             'batch_id': request.batch_id,
-            'assigned_by': current_user['id'],
             'notes': request.notes,
             'is_active': True
         }
@@ -246,16 +239,13 @@ async def assign_additional_class(
 
 @router.delete("/assignments/{assignment_id}")
 async def remove_additional_class_assignment(
-    assignment_id: str,
-    current_user: dict = Depends(require_admin)
+    assignment_id: str
 ):
     """
     Remove an additional class assignment
-    
-    **Security:** Requires ADMIN role
     """
     try:
-        logger.info(f"Admin {current_user['id']} removing assignment {assignment_id}")
+        logger.info(f"Removing assignment {assignment_id}")
         
         # Verify assignment exists
         assignments = await db.select(

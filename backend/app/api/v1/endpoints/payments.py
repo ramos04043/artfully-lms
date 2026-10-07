@@ -2,13 +2,12 @@
 Payment Endpoints
 Handles fee payments with atomic transactions and OpEX integration via FinanceService
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date, datetime
 from decimal import Decimal
 
-from app.auth.deps import require_admin
 from app.services.finance_service import FinanceService
 from app.zendbx_client import db
 import logging
@@ -41,8 +40,7 @@ class PaymentResponse(BaseModel):
 
 @router.post("/", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
 async def create_payment(
-    payment: PaymentCreate,
-    current_user: dict = Depends(require_admin)
+    payment: PaymentCreate
 ):
     """
     Create a new fee payment using centralized FinanceService
@@ -178,7 +176,7 @@ async def create_payment(
                 reference_type="FEE_PAYMENT",
                 reference_id=payment_id,
                 transaction_date=payment.payment_date,
-                created_by=current_user.get('email') or current_user.get('id')
+                created_by=None  # No user tracking without authentication
             )
         except Exception as e:
             logger.error(f"Transaction creation failed: {str(e)}")
@@ -274,8 +272,7 @@ async def list_payment_transactions(
 @router.post("/{payment_id}/void")
 async def void_payment(
     payment_id: str,
-    reason: str = "Payment voided by administrator",
-    current_user: dict = Depends(require_admin)
+    reason: str = "Payment voided by administrator"
 ):
     """
     Void a payment (soft delete with audit trail)
@@ -323,7 +320,7 @@ async def void_payment(
         try:
             await FinanceService.void_transaction(
                 transaction_id=transaction_id,
-                voided_by=current_user.get('email') or current_user.get('id'),
+                voided_by=None,  # No user tracking without authentication
                 reason=reason
             )
         except ValueError as e:

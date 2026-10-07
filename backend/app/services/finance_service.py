@@ -185,14 +185,12 @@ class FinanceService:
                 "transaction_type": transaction_type,
                 "amount": float(amount_decimal),
                 "balance_after": float(balance_after),  # Snapshot for audit
-                "category": category['code'],  # Keep legacy field populated
-                "category_id": category['id'],  # New authoritative field
+                "category": category['code'],  # Category code as text
                 "description": description,
                 "reference_type": reference_type,
                 "reference_id": reference_id,
                 "transaction_date": transaction_date.isoformat(),
                 "status": "ACTIVE"
-                # Note: created_by column doesn't exist in actual table
             }
             
             transactions = await db.insert(
@@ -267,7 +265,7 @@ class FinanceService:
                     "status": "VOIDED",
                     "voided_at": voided_timestamp,
                     "voided_by": voided_by,
-                    "voided_reason": reason
+                    "void_reason": reason
                 },
                 filters={"id": transaction_id}
             )
@@ -388,7 +386,8 @@ class FinanceService:
             List of active categories
         """
         try:
-            filters = {"is_active": "true"}
+            # Query without boolean filter to avoid ZendBX 500 errors
+            filters = {}
             
             if account_type:
                 filters["account_type"] = account_type
@@ -396,13 +395,16 @@ class FinanceService:
             if transaction_type:
                 filters["transaction_type"] = transaction_type
             
-            categories = await db.select(
+            all_categories = await db.select(
                 "transaction_categories",
-                filters=filters,
+                filters=filters if filters else None,
                 order_by="display_order.asc"
             )
             
-            return categories
+            # Filter active categories in memory
+            active_categories = [c for c in (all_categories or []) if c.get('is_active') == True]
+            
+            return active_categories
             
         except Exception as e:
             logger.error(f"Failed to fetch categories: {str(e)}")

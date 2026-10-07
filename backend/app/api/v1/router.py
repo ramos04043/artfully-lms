@@ -4,12 +4,13 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     attendance, payments, enrollment, expenses, staff, 
     automation, staff_auth_fix, database, migrations, batch_students, finance,
-    compensations, additional_classes, holidays
+    compensations, additional_classes, holidays, direct_auth
 )
 
 api_router = APIRouter()
 
 # Include implemented routers
+api_router.include_router(direct_auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(attendance.router, prefix="/attendance", tags=["Attendance"])
 api_router.include_router(payments.router, prefix="/payments", tags=["Payments"])
 api_router.include_router(enrollment.router, prefix="/enrollment", tags=["Enrollment"])

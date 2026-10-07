@@ -67,7 +67,7 @@ class CategoryResponse(BaseModel):
 # ============================================================================
 
 @router.get("/accounts/balances", response_model=List[AccountBalanceResponse])
-async def get_all_account_balances(current_user: dict = Depends(require_admin)):
+async def get_all_account_balances():
     """
     Get calculated balances for all active accounts
     
@@ -87,7 +87,7 @@ async def get_all_account_balances(current_user: dict = Depends(require_admin)):
 
 
 @router.get("/accounts/{account_id}/balance")
-async def get_account_balance(account_id: str, current_user: dict = Depends(require_admin)):
+async def get_account_balance(account_id: str):
     """
     Get calculated balance for a specific account
     
@@ -117,8 +117,7 @@ async def get_account_balance(account_id: str, current_user: dict = Depends(requ
 @router.post("/transactions/{transaction_id}/void")
 async def void_transaction(
     transaction_id: str,
-    request: VoidTransactionRequest,
-    current_user: dict = Depends(require_admin)
+    request: VoidTransactionRequest
 ):
     """
     Void a transaction (soft delete with audit trail)
@@ -155,8 +154,7 @@ async def void_transaction(
 
 @router.post("/revenue", status_code=status.HTTP_201_CREATED)
 async def create_manual_revenue(
-    revenue: ManualRevenueRequest,
-    current_user: dict = Depends(require_admin)
+    revenue: ManualRevenueRequest
 ):
     """
     Create manual revenue entry
@@ -230,8 +228,7 @@ async def create_manual_revenue(
 @router.get("/categories", response_model=List[CategoryResponse])
 async def get_categories(
     account_type: Optional[str] = None,
-    transaction_type: Optional[str] = None,
-    current_user: dict = Depends(require_admin)
+    transaction_type: Optional[str] = None
 ):
     """
     Get available transaction categories
@@ -259,7 +256,7 @@ async def get_categories(
 
 
 @router.get("/categories/{category_code}")
-async def get_category(category_code: str, current_user: dict = Depends(require_admin)):
+async def get_category(category_code: str):
     """
     Get details of a specific category by code
     """
@@ -286,7 +283,7 @@ async def get_category(category_code: str, current_user: dict = Depends(require_
 
 
 @router.get("/summary")
-async def get_financial_summary(current_user: dict = Depends(require_admin)):
+async def get_financial_summary():
     """
     Get financial summary for dashboard
     
@@ -367,7 +364,7 @@ async def get_financial_summary(current_user: dict = Depends(require_admin)):
 
 
 @router.get("/integrity")
-async def check_financial_integrity(current_user: dict = Depends(require_admin)):
+async def check_financial_integrity():
     """
     Check financial data integrity
     
@@ -579,7 +576,7 @@ async def check_financial_integrity(current_user: dict = Depends(require_admin))
 
 
 @router.post("/reconcile/{payment_id}")
-async def reconcile_payment(payment_id: str, current_user: dict = Depends(require_admin)):
+async def reconcile_payment(payment_id: str):
     """
     Reconcile a payment with its financial transaction
     

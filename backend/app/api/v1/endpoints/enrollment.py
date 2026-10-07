@@ -57,7 +57,8 @@ async def create_enrollment(enrollment: EnrollmentCreate):
     }
     
     # Convert enrollment model to dict and handle date serialization
-    enrollment_data = enrollment.dict()
+    # exclude_none=True prevents sending null values that override DB defaults
+    enrollment_data = enrollment.dict(exclude_none=True)
     if enrollment_data.get('student_date_of_birth'):
         enrollment_data['student_date_of_birth'] = enrollment_data['student_date_of_birth'].isoformat()
     

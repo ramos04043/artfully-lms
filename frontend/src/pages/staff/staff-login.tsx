@@ -18,66 +18,36 @@ export default function StaffLogin() {
     try {
       console.log('🔵 Staff login attempt:', email)
       
-      // Step 1: Authenticate with ZendBX
-      const { data, error: signInError } = await signInWithZendBX(email, password)
-      
-      if (signInError) {
-        console.error('❌ Sign in error:', signInError)
-        setError(signInError.message || 'Invalid email or password')
-        return
-      }
-      
-      console.log('✅ ZendBX authentication successful:', data)
-      
-      if (!data?.user) {
-        setError('Sign in failed. Please try again.')
-        return
-      }
-      
-      // Step 2: Check if user exists in app_users with STAFF role
-      console.log('🔵 Checking staff role in database...')
-      const { db } = await import('@/lib/zendbx')
-      
-      const { data: appUserRecords, error: dbError } = await db
-        .from('app_users')
-        .select('id, role, first_name, last_name, phone')
-        .eq('email', email)
-      
-      const appUsers = appUserRecords?.[0]
-      
-      if (dbError || !appUsers) {
-        console.error('❌ Database check error:', dbError)
-        setError('User not found in system. Please contact admin.')
-        return
-      }
-      
-      console.log('📋 User role from database:', appUsers.role)
-      
-      // Step 3: Verify STAFF role
-      if (appUsers.role !== 'STAFF') {
-        setError('Access denied. Staff credentials required.')
-        return
-      }
-
-      // Step 4: Update auth store with correct app_users data
-      console.log('🔵 Updating auth store with app_users data')
-      const { useAuthStore } = await import('@/stores/auth-store')
-      useAuthStore.getState().setAuth(
-        {
-          id: appUsers.id, // Use app_users.id, not auth_user_id!
-          email: email,
-          role: appUsers.role as 'ADMIN' | 'STAFF',
-          first_name: appUsers.first_name,
-          last_name: appUsers.last_name,
-          phone: appUsers.phone || '',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+      // Use custom authentication with app_users table (same as admin)
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        data.session.access_token
-      )
+        body: JSON.stringify({ email, password }),
+      })
 
-      console.log('✅ Staff role verified, redirecting to portal')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Login failed' }))
+        console.error('❌ Login error:', errorData)
+        setError(errorData.detail || 'Invalid email or password')
+        return
+      }
+
+      const data = await response.json()
+      console.log('✅ Authentication successful:', { email: data.user.email, role: data.user.role })
+      
+      // Verify this is a staff user (not admin)
+      if (data.user.email === 'admin@artfully.in') {
+        setError('Please use the admin login page')
+        return
+      }
+
+      // Store authentication
+      const { useAuthStore } = await import('@/stores/auth-store')
+      useAuthStore.getState().setAuth(data.user, data.access_token)
+
+      console.log('✅ Staff login successful, redirecting to portal')
       navigate('/staff')
       
     } catch (err: any) {

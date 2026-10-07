@@ -62,11 +62,10 @@ export default function EnrollmentPage() {
     try {
       setLoadingBatches(true)
 
-      // Load programmes
+      // Load programmes (filter in memory to avoid boolean 500 error)
       const { data: progData, error: progError } = await db
         .from('programmes')
         .select('*')
-        .eq('is_active', true)
 
       if (progError) {
         console.error('Programme error:', progError)
@@ -76,12 +75,14 @@ export default function EnrollmentPage() {
         throw new Error(errorMsg)
       }
       
-      setProgrammes(progData || [])
+      // Filter active programmes in memory
+      const activeProgrammes = (progData || []).filter((p: any) => p.is_active === true)
+      setProgrammes(activeProgrammes)
 
       // Select first programme by default
-      if (progData && progData.length > 0) {
-        setSelectedProgramme(progData[0].id)
-        await loadBatchesForProgramme(progData[0].id)
+      if (activeProgrammes && activeProgrammes.length > 0) {
+        setSelectedProgramme(activeProgrammes[0].id)
+        await loadBatchesForProgramme(activeProgrammes[0].id)
       }
     } catch (err: any) {
       console.error('Error loading programmes:', err)
@@ -95,12 +96,11 @@ export default function EnrollmentPage() {
     try {
       setLoadingBatches(true)
 
-      // Load all batches for this programme
+      // Load all batches for this programme (filter active in memory)
       const { data: batchData, error: batchError } = await db
         .from('batches')
         .select('*')
         .eq('programme_id', programmeId)
-        .eq('is_active', true)
         .order('start_time')
 
       if (batchError) {
@@ -111,20 +111,25 @@ export default function EnrollmentPage() {
         throw new Error(errorMsg)
       }
 
+      // Filter active batches in memory
+      const activeBatchData = (batchData || []).filter((b: any) => b.is_active === true)
+
       // For each batch, count enrolled students from enrollments table
       // Get all enrollments once for efficiency
       const { data: allEnrollments, error: enrollError } = await db
         .from('enrollments')
         .select('id, batch_ids, status')
-        .eq('status', 'ACTIVE')
 
       if (enrollError) {
         console.error('Enrollment fetch error:', enrollError)
       }
 
-      const batchesWithCapacity = (batchData || []).map((batch) => {
+      // Filter active enrollments in memory
+      const activeEnrollments = (allEnrollments || []).filter((e: any) => e.status === 'ACTIVE')
+
+      const batchesWithCapacity = (activeBatchData || []).map((batch) => {
         // Count students who have this batch in their batch_ids array
-        const activeCount = (allEnrollments || []).filter(enrollment => 
+        const activeCount = activeEnrollments.filter(enrollment => 
           enrollment.batch_ids && enrollment.batch_ids.includes(batch.id)
         ).length
 

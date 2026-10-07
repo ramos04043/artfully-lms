@@ -101,18 +101,39 @@ async def debug_staff_data(email: str):
 @router.get("/", response_model=List[StaffResponse])
 async def list_staff():
     """
-    Get all staff members
+    Get all staff members from app_users table
     """
     try:
-        # Query app_users table for staff
+        # Query all app_users (we'll filter admin separately or mark them differently)
+        # Since app_users doesn't have a role column, we get all users
+        # and filter out admin by email
         result = await db.select(
             'app_users',
-            columns='id, email, first_name, last_name, phone, is_active, created_at',
-            filters={'role': 'STAFF'},
-            order_by='first_name.asc'
+            columns='id, username as first_name, email, created_at',
+            order_by='email.asc'
         )
         
-        return result if result else []
+        if not result:
+            return []
+        
+        # Format the response and filter out admin
+        staff_list = []
+        for user in result:
+            # Skip admin user
+            if user['email'] == 'admin@artfully.in':
+                continue
+                
+            staff_list.append({
+                'id': user['id'],
+                'email': user['email'],
+                'first_name': user.get('first_name', user['email'].split('@')[0]),
+                'last_name': '',  # username doesn't split into first/last
+                'phone': None,
+                'is_active': True,
+                'created_at': user.get('created_at', datetime.now())
+            })
+        
+        return staff_list
     
     except Exception as e:
         logger.error(f"Error listing staff: {str(e)}")
@@ -122,12 +143,11 @@ async def list_staff():
 @router.post("/", response_model=StaffResponse, status_code=201)
 async def create_staff(staff: StaffCreate):
     """
-    Create a new staff member with ZendBX auth account
+    Create a new staff member with authentication credentials
     
     This creates:
-    1. ZendBX auth account (for login)
-    2. app_users record (for role management)
-    3. staff record (for staff-specific data)
+    1. app_users record (with bcrypt password hash for authentication)
+    2. staff record (for staff-specific data)
     """
     try:
         logger.info(f"Creating staff member: {staff.email}")
@@ -143,44 +163,21 @@ async def create_staff(staff: StaffCreate):
         if existing_user and len(existing_user) > 0:
             raise HTTPException(status_code=400, detail=f"Staff member with email {staff.email} already exists")
         
-        # Step 1: Create ZendBX auth account  
-        logger.info(f"Creating ZendBX auth account via HTTP for {staff.email}")
-        auth_user_id = None
+        # Step 1: Generate bcrypt password hash
+        import bcrypt
+        logger.info(f"Generating password hash for {staff.email}")
+        password_bytes = staff.password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        hash_bytes = bcrypt.hashpw(password_bytes, salt)
+        password_hash = hash_bytes.decode('utf-8')
         
-        try:
-            import httpx
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{settings.ZENDBX_URL}/p/artfully-database/v1/auth/signup",
-                    json={"email": staff.email, "password": staff.password},
-                    headers={"apikey": settings.ZENDBX_SERVICE_KEY, "Content-Type": "application/json"},
-                    timeout=30.0
-                )
-                logger.info(f"HTTP Response: {response.status_code}")
-                if response.status_code in [200, 201]:
-                    data = response.json()
-                    auth_user_id = data.get('user', {}).get('id') or data.get('id')
-                    logger.info(f"Auth created! ID: {auth_user_id}")
-                else:
-                    logger.error(f"Failed: {response.text}")
-        except Exception as e:
-            logger.error(f"Auth error: {e}")
-            auth_user_id = None
-        
-        # Step 2: Create app_users record
+        # Step 2: Create app_users record with password hash
         logger.info(f"Creating app_users record for {staff.email}")
         user_data = {
+            'username': staff.email.split('@')[0],  # Use email prefix as username
             'email': staff.email,
-            'role': 'STAFF',
-            'first_name': staff.first_name,
-            'last_name': staff.last_name,
-            'phone': staff.phone,
-            'is_active': True
+            'password_hash': password_hash
         }
-        
-        # Add auth_user_id if available
-        if auth_user_id:
-            user_data['auth_user_id'] = auth_user_id
         
         user_result = await db.insert('app_users', user_data)
         
@@ -189,9 +186,9 @@ async def create_staff(staff: StaffCreate):
             raise HTTPException(status_code=500, detail="Failed to create user record")
         
         user_record = user_result[0]
-        logger.info(f"App user created with ID: {user_record['id']}")
+        logger.info(f"✅ App user created with ID: {user_record['id']}")
         
-        # Step 3: Create staff record
+        # Step 3: Create staff record linked to the user
         logger.info(f"Creating staff record")
         staff_data = {
             'user_id': user_record['id'],
@@ -213,25 +210,20 @@ async def create_staff(staff: StaffCreate):
         logger.info(f"✅ Staff record created with ID: {staff_record['id']}")
         logger.info(f"✅ Staff member created successfully")
         logger.info(f"   Email: {staff.email}")
+        logger.info(f"   ✅ Login enabled - can login at /login")
         
-        if auth_user_id:
-            logger.info(f"   ✅ Login enabled - they can login at /staff/login")
-            logger.info(f"   Password: [HIDDEN]")
-        else:
-            logger.warning(f"   ⚠️  Login NOT enabled - auth account creation failed")
-            logger.warning(f"   Manual step required: Create auth account in ZendBX dashboard")
-            logger.warning(f"   Go to: ZendBX Console → Authentication → Users → Add User")
-            logger.warning(f"   Email: {staff.email}")
+        # Return the user record formatted as StaffResponse
+        response_data = {
+            'id': user_record['id'],
+            'email': user_record['email'],
+            'first_name': staff.first_name,
+            'last_name': staff.last_name,
+            'phone': staff.phone,
+            'is_active': True,
+            'created_at': user_record.get('created_at', datetime.now())
+        }
         
-        # Return the user record
-        response = StaffResponse(**user_record)
-        
-        # Add warning to response if auth failed
-        if not auth_user_id:
-            # This won't show in StaffResponse but will be in logs
-            logger.info("Returning staff record without auth")
-            
-        return response
+        return StaffResponse(**response_data)
     
     except HTTPException:
         raise
@@ -264,14 +256,16 @@ async def assign_batches(
         
         staff_record_id = staff_result[0]['id']
         
-        # Get current assignments
-        current_assignments = await db.select(
+        # Get current assignments (query without is_active filter to avoid ZendBX 500 error)
+        all_assignments = await db.select(
             'staff_batches',
-            columns='batch_id',
-            filters={'staff_id': staff_record_id, 'is_active': True}
+            columns='batch_id, is_active',
+            filters={'staff_id': staff_record_id}
         )
         
-        current_batch_ids = [a['batch_id'] for a in (current_assignments or [])]
+        # Filter active assignments in memory
+        current_assignments = [a for a in (all_assignments or []) if a.get('is_active', True)]
+        current_batch_ids = [a['batch_id'] for a in current_assignments]
         
         # Find batches to add and remove
         batches_to_add = [b for b in assignment.batch_ids if str(b) not in current_batch_ids]
@@ -421,7 +415,22 @@ async def delete_staff(staff_id: UUID):
     try:
         logger.info(f"Deleting staff member: {staff_id}")
         
-        # Get staff record
+        # Check if user exists in app_users first
+        user_result = await db.select(
+            'app_users',
+            columns='id, email',
+            filters={'id': str(staff_id)},
+            limit=1
+        )
+        
+        if not user_result or len(user_result) == 0:
+            logger.warning(f"User not found in app_users: {staff_id}")
+            raise HTTPException(status_code=404, detail="Staff member not found")
+        
+        user_email = user_result[0]['email']
+        logger.info(f"Found user: {user_email}")
+        
+        # Get staff record (may not exist if user never completed onboarding)
         staff_result = await db.select(
             'staff',
             columns='id',
@@ -429,35 +438,38 @@ async def delete_staff(staff_id: UUID):
             limit=1
         )
         
-        if not staff_result or len(staff_result) == 0:
-            raise HTTPException(status_code=404, detail="Staff member not found")
-        
-        staff_record_id = staff_result[0]['id']
-        
-        # Delete batch assignments - need to query first, then delete by ID
-        try:
-            batch_assignments = await db.select(
-                'staff_batches',
-                columns='id',
-                filters={'staff_id': staff_record_id}
-            )
+        if staff_result and len(staff_result) > 0:
+            staff_record_id = staff_result[0]['id']
+            logger.info(f"Found staff record: {staff_record_id}")
             
-            if batch_assignments:
-                for assignment in batch_assignments:
-                    await db.delete('staff_batches', {'id': assignment['id']})
-                    
-            logger.info(f"Deleted {len(batch_assignments)} batch assignments")
-        except Exception as e:
-            logger.warning(f"Error deleting batch assignments: {e}")
-            # Continue even if batch deletion fails
-        
-        # Delete staff record
-        await db.delete('staff', {'id': staff_record_id})
+            # Delete batch assignments - need to query first, then delete by ID
+            try:
+                batch_assignments = await db.select(
+                    'staff_batches',
+                    columns='id',
+                    filters={'staff_id': staff_record_id}
+                )
+                
+                if batch_assignments:
+                    for assignment in batch_assignments:
+                        await db.delete('staff_batches', {'id': assignment['id']})
+                        
+                logger.info(f"Deleted {len(batch_assignments)} batch assignments")
+            except Exception as e:
+                logger.warning(f"Error deleting batch assignments: {e}")
+                # Continue even if batch deletion fails
+            
+            # Delete staff record
+            await db.delete('staff', {'id': staff_record_id})
+            logger.info("Deleted staff record")
+        else:
+            logger.info("No staff record found (user may not have completed onboarding)")
         
         # Delete app_users record
         await db.delete('app_users', {'id': str(staff_id)})
+        logger.info(f"Deleted app_users record for {user_email}")
         
-        logger.info(f"Staff member deleted successfully")
+        logger.info(f"✅ Staff member {user_email} deleted successfully")
         
         return {"message": "Staff member deleted successfully"}
     
@@ -1699,14 +1711,15 @@ async def get_staff_attendance_history(
             for e in (enrollments or [])
         }
         
-        # Get batch names
-        batches = await db.select(
+        # Get batch names (query without is_active filter to avoid ZendBX 500 error)
+        all_batches = await db.select(
             'batches',
-            columns='id, name',
-            filters={'is_active': True}
+            columns='id, name, is_active'
         )
         
-        batch_map = {b['id']: b['name'] for b in (batches or [])}
+        # Filter active batches in memory
+        active_batches = [b for b in (all_batches or []) if b.get('is_active', True)]
+        batch_map = {b['id']: b['name'] for b in active_batches}
         
         # Enrich records with names
         enriched_records = []

@@ -18,9 +18,9 @@ interface AttendanceRecord {
   id: string
   student_id: string
   batch_id: string
-  session_id: string
   class_date: string
   status: string
+  notes?: string
   created_at: string
   updated_at: string
 }
@@ -157,7 +157,7 @@ export default function AttendanceReportsPage() {
 
       let query = db
         .from('attendance')
-        .select('*')
+        .select('id, student_id, batch_id, class_date, status, notes, created_at, updated_at')
         .eq('student_id', selectedStudent.student_id)
         .order('class_date', { ascending: false })
 

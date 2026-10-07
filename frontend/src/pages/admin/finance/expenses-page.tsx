@@ -144,17 +144,19 @@ export default function ExpensesPage() {
       }
       setError('')
 
-      // Load financial accounts
+      // Load financial accounts - avoid boolean filter, filter in memory
       const { data: accountsData, error: accountsError } = await db
         .from('financial_accounts')
         .select('*')
-        .eq('is_active', true)
 
       if (accountsError) {
         console.error('Error loading accounts:', accountsError)
         throw accountsError
       }
-      setAccounts((accountsData || []) as FinancialAccount[])
+      
+      // Filter active accounts in memory
+      const activeAccounts = (accountsData || []).filter((a: any) => a.is_active === true)
+      setAccounts(activeAccounts as FinancialAccount[])
 
       // Load expenses
       const { data: expensesData, error: expensesError } = await db

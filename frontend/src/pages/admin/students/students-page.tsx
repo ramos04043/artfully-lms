@@ -42,15 +42,22 @@ export default function StudentsPage() {
 
   const loadBatches = async () => {
     try {
+      // Query batches without boolean filter to avoid 500 error
+      // We'll filter in memory instead
       const { data, error } = await db
         .from('batches')
-        .select('id, name, day_of_week, start_time, end_time')
-        .eq('is_active', true)
+        .select('id, name, day_of_week, start_time, end_time, is_active')
+        .order('name', { ascending: true })
 
       if (error) throw error
-      setBatches(data || [])
+      
+      // Filter active batches in memory
+      const activeBatches = (data || []).filter((batch: any) => batch.is_active === true)
+      setBatches(activeBatches)
     } catch (err: any) {
       console.error('Error loading batches:', err)
+      // Set empty array on error to prevent null reference
+      setBatches([])
     }
   }
 
@@ -254,8 +261,8 @@ export default function StudentsPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-art-indigo/10 rounded-full flex items-center justify-center">
                           <span className="text-art-indigo font-semibold">
-                            {student.student_first_name[0]}
-                            {student.student_last_name[0]}
+                            {student.student_first_name?.[0] || '?'}
+                            {student.student_last_name?.[0] || ''}
                           </span>
                         </div>
                         <div>

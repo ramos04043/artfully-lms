@@ -96,70 +96,92 @@ export default function StaffManagementPage() {
       setError('')
 
       // Load all staff from app_users table
+      // app_users schema: id, username, email, password_hash, created_at, updated_at
+      // We'll exclude admin@artfully.in from the list
       const { data: staffData, error: staffError } = await db
         .from('app_users')
-        .select('id, email, first_name, last_name, phone, is_active, created_at')
-        .eq('role', 'STAFF')
-        .order('first_name', { ascending: true })
+        .select('id, username, email, created_at')
+        .neq('email', 'admin@artfully.in')  // Exclude admin
+        .order('email', { ascending: true })
 
       if (staffError) {
         console.error('Staff loading error:', staffError)
         throw staffError
       }
 
-      setStaff((staffData || []) as StaffMember[])
+      // Map app_users data to StaffMember format
+      const mappedStaff: StaffMember[] = (staffData || []).map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        first_name: user.username || user.email.split('@')[0],  // Use username or email prefix
+        last_name: '',  // Not stored in app_users
+        phone: undefined,  // Not stored in app_users
+        is_active: true,  // Assume active if in table
+        created_at: user.created_at
+      }))
+
+      setStaff(mappedStaff)
 
       // Load staff records to build user_id -> staff_id mapping
-      const { data: staffRecords, error: staffRecordsError } = await db
+      // Query without is_active filter to avoid ZendBX 500 error, filter in memory
+      const { data: allStaffRecords, error: staffRecordsError } = await db
         .from('staff')
-        .select('id, user_id')
-        .eq('is_active', true)
+        .select('id, user_id, is_active')
 
       if (staffRecordsError) {
         console.error('Staff records loading error:', staffRecordsError)
         throw staffRecordsError
       }
 
+      // Filter active staff records in memory
+      const staffRecords = allStaffRecords?.filter((record: any) => record.is_active === true) || []
+
       // Build mapping
       const mapping: Record<string, string> = {}
-      staffRecords?.forEach((record: any) => {
+      staffRecords.forEach((record: any) => {
         mapping[record.user_id] = record.id
       })
       setUserToStaffMap(mapping)
       console.log('?? User to Staff mapping:', mapping)
 
-      // Load batches
-      const { data: batchesData, error: batchError} = await db
+      // Load batches (query without is_active filter to avoid ZendBX 500 error, filter in memory)
+      const { data: allBatchesData, error: batchError} = await db
         .from('batches')
-        .select('id, name, day_of_week, start_time, end_time, programme_id')
-        .eq('is_active', true)
+        .select('id, name, day_of_week, start_time, end_time, programme_id, is_active')
         .order('day_of_week', { ascending: true })
 
       if (batchError) throw batchError
       
-      // Load programmes to get names
-      const { data: programmesData } = await db
+      // Filter active batches in memory
+      const batchesData = allBatchesData?.filter((batch: any) => batch.is_active === true) || []
+      
+      // Load programmes to get names (query without is_active filter to avoid ZendBX 500 error, filter in memory)
+      const { data: allProgrammesData } = await db
         .from('programmes')
-        .select('id, name')
-        .eq('is_active', true)
+        .select('id, name, is_active')
+      
+      // Filter active programmes in memory
+      const programmesData = allProgrammesData?.filter((p: any) => p.is_active === true) || []
       
       // Map programme names to batches
-      const programmeMap = new Map(programmesData?.map(p => [p.id, p.name]) || [])
-      const batchesWithProgrammes = (batchesData || []).map(batch => ({
+      const programmeMap = new Map(programmesData.map(p => [p.id, p.name]))
+      const batchesWithProgrammes = batchesData.map(batch => ({
         ...batch,
         programme_name: programmeMap.get(batch.programme_id) || 'Unknown'
       }))
       
       setBatches(batchesWithProgrammes as Batch[])
 
-      // Load staff-batch assignments
-      const { data: staffBatchesData, error: sbError } = await db
+      // Load staff-batch assignments (query without is_active filter to avoid ZendBX 500 error, filter in memory)
+      const { data: allStaffBatchesData, error: sbError } = await db
         .from('staff_batches')
         .select('*')
-        .eq('is_active', true)
 
       if (sbError) throw sbError
-      setStaffBatches((staffBatchesData || []) as StaffBatch[])
+      
+      // Filter active staff-batch assignments in memory
+      const staffBatchesData = allStaffBatchesData?.filter((sb: any) => sb.is_active === true) || []
+      setStaffBatches(staffBatchesData as StaffBatch[])
     } catch (err: any) {
       console.error('Error loading data:', err)
       setError(err?.message || err?.hint || err?.detail || 'Failed to load data')
